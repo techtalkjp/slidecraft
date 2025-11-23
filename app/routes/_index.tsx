@@ -9,6 +9,7 @@ import {
   Sparkles,
   Upload,
 } from 'lucide-react'
+import { useEffect } from 'react'
 import { Link } from 'react-router'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
@@ -115,18 +116,41 @@ function SlideMockup({ type = 'before' }: { type?: 'before' | 'after' }) {
 }
 
 export default function Index() {
+  /**
+   * LP専用のスムーススクロール設定
+   * External system: DOM (html要素のスタイル変更)
+   */
+  useEffect(() => {
+    const htmlElement = document.documentElement
+    const originalScrollBehavior = htmlElement.style.scrollBehavior
+    const originalScrollPaddingTop = htmlElement.style.scrollPaddingTop
+
+    // LPページでのみスムーススクロールを有効化
+    htmlElement.style.scrollBehavior = 'smooth'
+    htmlElement.style.scrollPaddingTop = '4rem' // ヘッダーの高さ (h-16 = 64px)
+
+    return () => {
+      // クリーンアップ: 元のスタイルに戻す
+      htmlElement.style.scrollBehavior = originalScrollBehavior
+      htmlElement.style.scrollPaddingTop = originalScrollPaddingTop
+    }
+  }, [])
+
   return (
-    <div className="min-h-screen bg-white">
+    <div id="top" className="min-h-screen bg-white">
       {/* Navigation */}
       <nav className="sticky top-0 z-50 border-b border-slate-200 bg-white/90 backdrop-blur-sm">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center gap-2">
+            <a
+              href="#top"
+              className="flex items-center gap-2 transition-opacity hover:opacity-80"
+            >
               <img src="/logo.svg" alt="SlideCraft" className="h-8 w-8" />
               <span className="text-xl font-bold tracking-tight text-slate-800">
                 SlideCraft
               </span>
-            </div>
+            </a>
             <div className="hidden items-center gap-6 md:flex">
               <a
                 href="#features"
@@ -687,10 +711,13 @@ export default function Index() {
       <footer className="border-t border-slate-200 bg-slate-50 py-12">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
-            <div className="flex items-center gap-2">
+            <a
+              href="#top"
+              className="flex items-center gap-2 transition-opacity hover:opacity-80"
+            >
               <img src="/logo.svg" alt="SlideCraft" className="h-6 w-6" />
               <span className="font-bold text-slate-800">SlideCraft</span>
-            </div>
+            </a>
             <div className="flex gap-8 text-sm text-slate-500">
               <Link to="/terms" className="hover:text-slate-800">
                 利用規約
