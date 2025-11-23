@@ -28,6 +28,9 @@ export const links: Route.LinksFunction = () => [
 ]
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const location = useLocation()
+  const canonicalUrl = `https://www.slidecraft.work${location.pathname}`
+
   return (
     <html lang="ja">
       <head>
@@ -35,7 +38,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
-        <link rel="canonical" href="https://www.slidecraft.work" />
+        <link rel="canonical" href={canonicalUrl} />
         {/* Google Analytics */}
         <script
           async
@@ -71,6 +74,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
               description:
                 'AI生成スライドを1枚単位で修正できるWebアプリケーション。Notebook LMやNano Banana Proで生成したスライドのピンポイント修正が可能。',
               url: 'https://www.slidecraft.work',
+              logo: 'https://www.slidecraft.work/logo.svg',
+              image: 'https://www.slidecraft.work/ogp.jpg',
               author: {
                 '@type': 'Organization',
                 name: 'TechTalk Inc.',

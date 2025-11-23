@@ -34,6 +34,10 @@ export function meta(): Route.MetaDescriptors {
     { property: 'og:image', content: `${url}/ogp.jpg` },
     { property: 'og:image:width', content: '1200' },
     { property: 'og:image:height', content: '630' },
+    {
+      property: 'og:image:alt',
+      content: 'SlideCraft - 3枚だけ直したいのに全体が変わる問題を解決',
+    },
     { property: 'og:site_name', content: 'SlideCraft' },
     { property: 'og:locale', content: 'ja_JP' },
 
@@ -42,6 +46,10 @@ export function meta(): Route.MetaDescriptors {
     { name: 'twitter:title', content: title },
     { name: 'twitter:description', content: description },
     { name: 'twitter:image', content: `${url}/ogp.jpg` },
+    {
+      name: 'twitter:image:alt',
+      content: 'SlideCraft - 3枚だけ直したいのに全体が変わる問題を解決',
+    },
   ]
 }
 
@@ -170,7 +178,7 @@ export default function Index() {
                   rel="noopener noreferrer"
                   className="transition-opacity hover:opacity-80"
                 >
-                  <Badge className="bg-slate-100 text-slate-700 cursor-pointer">
+                  <Badge className="cursor-pointer bg-slate-100 text-slate-700">
                     Open Source
                   </Badge>
                 </a>
