@@ -3,12 +3,12 @@ import {
   ArrowRight,
   Check,
   Clock,
-  Coins,
-  FileText,
   Layout,
+  Lock,
   MousePointerClick,
   Shield,
   Sparkles,
+  Upload,
 } from 'lucide-react'
 import { Link } from 'react-router'
 import { Badge } from '~/components/ui/badge'
@@ -147,9 +147,14 @@ export default function Index() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid items-center gap-12 lg:grid-cols-12">
             <div className="space-y-8 lg:col-span-6">
-              <Badge className="bg-blue-50 text-blue-600">
-                Professional Beta
-              </Badge>
+              <div className="flex flex-wrap gap-2">
+                <Badge className="bg-blue-50 text-blue-600">
+                  Professional Beta
+                </Badge>
+                <Badge className="bg-slate-100 text-slate-700">
+                  Open Source
+                </Badge>
+              </div>
               <h1 className="text-4xl leading-[1.2] font-bold tracking-tight text-slate-900 lg:text-5xl">
                 AI生成スライド、
                 <br />
@@ -258,10 +263,10 @@ export default function Index() {
                   />
                 </div>
                 <h3 className="mb-4 text-lg font-bold text-slate-900">
-                  全体が変わるリスク
+                  全ページガチャ状態
                 </h3>
                 <p className="text-sm leading-relaxed text-slate-600">
-                  5枚目だけ直したいのに、再生成すると完璧だった他の25枚のデザインまで変わってしまう不確実性。
+                  5枚目だけ直したいのに、再生成すると完璧だった他の25枚まで全部変わる。何度やっても満足いく結果にならない。
                 </p>
               </div>
             </Card>
@@ -272,10 +277,11 @@ export default function Index() {
                   <Clock className="h-8 w-8 text-amber-600" strokeWidth={1.5} />
                 </div>
                 <h3 className="mb-4 text-lg font-bold text-slate-900">
-                  手作業修正の限界
+                  再生成の待ち時間
                 </h3>
                 <p className="text-sm leading-relaxed text-slate-600">
-                  PowerPointでの微調整は1枚10分かかる。AIが作ったデザインの統一感を保つのは困難で、本来の業務時間を圧迫する。
+                  Notebook
+                  LMは無料だが、1回の再生成に5〜10分かかる。微調整のたびに待つ時間が積み重なり、本来の業務時間を圧迫する。
                 </p>
               </div>
             </Card>
@@ -283,16 +289,13 @@ export default function Index() {
               <div className="absolute top-0 right-0 h-24 w-24 translate-x-8 -translate-y-8 rounded-full bg-orange-50 opacity-50 transition-opacity group-hover:opacity-70" />
               <div className="relative">
                 <div className="mb-6 inline-flex items-center justify-center">
-                  <Coins
-                    className="h-8 w-8 text-orange-500"
-                    strokeWidth={1.5}
-                  />
+                  <Lock className="h-8 w-8 text-orange-500" strokeWidth={1.5} />
                 </div>
                 <h3 className="mb-4 text-lg font-bold text-slate-900">
-                  無駄なコスト
+                  編集不可能なPDF
                 </h3>
                 <p className="text-sm leading-relaxed text-slate-600">
-                  微修正のために全ページ分の生成コストがかかる。「タイトルサイズ確認」だけで数百円が飛んでいく非合理性。
+                  生成されたPDFはPowerPointで編集できない。手元で微調整したくてもできず、再生成ガチャを回すしかない。
                 </p>
               </div>
             </Card>
@@ -375,16 +378,16 @@ export default function Index() {
                 </div>
               </div>
 
-              {/* Feature Visuals - Cost */}
+              {/* Feature Visuals - Certainty */}
               <div className="rounded-lg border border-slate-100 bg-slate-50 p-6">
                 <div className="mb-2 text-4xl font-bold text-slate-800">
-                  1/10
+                  100%
                 </div>
                 <div className="mb-4 text-sm font-bold tracking-wide text-slate-500 uppercase">
-                  Cost Efficiency
+                  Certainty
                 </div>
                 <p className="text-sm leading-relaxed text-slate-600">
-                  全体再生成（30枚）にかかるコストと比較して、必要な1枚だけの修正ならコストは約10分の1以下。
+                  再生成ガチャで全ページが変わるリスクなし。修正したいスライドだけが確実に変わる。
                 </p>
               </div>
 
@@ -429,7 +432,7 @@ export default function Index() {
                 step: '01',
                 title: 'PDFアップロード',
                 text: '生成済みPDFをドラッグ&ドロップ。自動でスライド一覧に変換。',
-                icon: FileText,
+                icon: Upload,
               },
               {
                 step: '02',
@@ -476,15 +479,15 @@ export default function Index() {
             {[
               {
                 title: '提案直前の最終調整',
-                text: '「全体は良いが、P.5の背景だけ濃すぎる」。全体再生成のリスクを冒さず、そこだけをピンポイント修正。',
+                text: '「全体は良いが、P.5の背景だけ濃すぎる」。全体再生成で他のページまで変わるリスクを冒さず、そこだけをピンポイント修正。',
               },
               {
                 title: '誤字・数値の緊急修正',
-                text: 'プレゼン1時間前に発見したミス。PowerPointでレイアウトを崩さずに直す時間がない時に、1分で解決。',
+                text: 'プレゼン1時間前に発見したミス。再生成では5〜10分待つ余裕がない。SlideCraftなら1分で完了。',
               },
               {
                 title: 'デザインパターンの探索',
-                text: '重要なスライドだけ4パターン生成して比較。全ページ生成する無駄を省き、低コストで最適解へ。',
+                text: '重要なスライドだけ4パターン生成して比較。全ページ再生成の待ち時間を省き、約80円・5分で最適解へ。',
               },
             ].map((useCase) => (
               <div key={useCase.title} className="flex items-start gap-4">
