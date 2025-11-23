@@ -6,7 +6,7 @@ import {
   Loader2,
   Sparkles,
 } from 'lucide-react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { ApiKeyDialog } from '~/components/api-key-dialog'
 import { Alert, AlertDescription } from '~/components/ui/alert'
 import { Button } from '~/components/ui/button'
@@ -16,27 +16,11 @@ import {
   HoverCardTrigger,
 } from '~/components/ui/hover-card'
 import { Textarea } from '~/components/ui/textarea'
-import {
-  trackFirstGenerationCompleted,
-  trackGenerationCompleted,
-  trackGenerationFailed,
-  trackGenerationStarted,
-} from '~/lib/analytics'
-import { getApiKey, hasApiKey } from '~/lib/api-settings.client'
-import {
-  calculateGenerationCost,
-  formatCost,
-  formatCostJPY,
-  getExchangeRate,
-} from '~/lib/cost-calculator'
-import { dataUrlToBlob, generateSlideVariations } from '~/lib/gemini-api.client'
-import {
-  loadCurrentSlideImage,
-  loadSlideImage,
-  saveSlideImage,
-  saveSlides,
-} from '~/lib/slides-repository.client'
+import { formatCost, formatCostJPY } from '~/lib/cost-calculator'
 import type { Slide } from '~/lib/types'
+import { useCostEstimate } from './hooks/useCostEstimate'
+import { useSlideGeneration } from './hooks/useSlideGeneration'
+import { useSlideImages } from './hooks/useSlideImages'
 
 interface ControlPanelProps {
   projectId: string
@@ -51,322 +35,64 @@ export function ControlPanel({
   allSlides,
   onSlideUpdate,
 }: ControlPanelProps) {
-  // 生成処理の状態
+  // ========================================
+  // ローカル状態: プロンプトと生成数
+  // ========================================
+
   const [prompt, setPrompt] = useState(slide.lastPrompt || '')
   const [generationCount, setGenerationCount] = useState(1)
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [generationProgress, setGenerationProgress] = useState<{
-    current: number
-    total: number
-  } | null>(null)
-  const [validationError, setValidationError] = useState<string | null>(null)
-  const [generationError, setGenerationError] = useState<string | null>(null)
-
-  // 画像管理の状態
-  const [candidateImages, setCandidateImages] = useState<
-    Map<string, string | null>
-  >(new Map())
-  const [originalImage, setOriginalImage] = useState<string | null>(null)
-
-  // コスト管理の状態
-  const [lastGenerationCost, setLastGenerationCost] = useState<number | null>(
-    null,
-  )
-  const [exchangeRate, setExchangeRate] = useState<number | null>(null)
-
-  // その他の状態
-  const [showApiKeyDialog, setShowApiKeyDialog] = useState(false)
-  const promptRef = useRef<HTMLTextAreaElement>(null)
-  const prevSlideIdRef = useRef<string>(slide.id)
 
   // ========================================
-  // 画像管理: Object URLのクリーンアップとプリロード
+  // カスタムフック: 画像管理
   // ========================================
 
-  /**
-   * 既存の画像Object URLをクリーンアップする
-   * メモリリークを防ぐため、スライド切り替え時に実行
-   */
-  const cleanupImageUrls = useCallback(() => {
-    if (originalImage) {
-      URL.revokeObjectURL(originalImage)
-    }
-    candidateImages.forEach((url) => {
-      if (url) {
-        URL.revokeObjectURL(url)
-      }
-    })
-  }, [originalImage, candidateImages])
-
-  /**
-   * オリジナル画像をプリロードする
-   * 候補画像がある場合にスライド切り替え時に実行
-   */
-  const preloadOriginalImage = useCallback(async () => {
-    try {
-      const blob = await loadSlideImage(projectId, slide.id, 'original')
-      const url = URL.createObjectURL(blob)
-      setOriginalImage(url)
-    } catch (err) {
-      console.error('オリジナル画像の読み込みエラー:', err)
-    }
-  }, [projectId, slide.id])
+  const {
+    originalImage,
+    candidateImages,
+    loadOriginalImage,
+    loadCandidateImage,
+  } = useSlideImages(projectId, slide)
 
   // ========================================
-  // コスト計算: 為替レート取得
+  // カスタムフック: コスト計算
   // ========================================
 
-  /**
-   * USD/JPY為替レートを取得（初回のみ）
-   * 外部システム: exchangerate-api.comのREST API
-   * 24時間キャッシュされるため、頻繁なリクエストは発生しない
-   */
-  useEffect(() => {
-    getExchangeRate().then(setExchangeRate)
-  }, [])
+  const {
+    exchangeRate,
+    costEstimate,
+    lastGenerationCost,
+    recordGenerationCost,
+    resetGenerationCost,
+  } = useCostEstimate(prompt, generationCount)
 
   // ========================================
-  // スライド切り替え時の画像リセット
+  // カスタムフック: 生成処理
   // ========================================
 
-  // スライドが変わったら画像状態をリセットして再読み込み
-  useEffect(() => {
-    if (prevSlideIdRef.current !== slide.id) {
-      // 既存のObject URLをクリーンアップ
-      cleanupImageUrls()
+  const {
+    isGenerating,
+    generationProgress,
+    validationError,
+    setValidationError,
+    generationError,
+    showApiKeyDialog,
+    setShowApiKeyDialog,
+    promptRef,
+    handleGenerate,
+    handleSelectCandidate,
+  } = useSlideGeneration({
+    projectId,
+    slide,
+    allSlides,
+    onSlideUpdate,
+    prompt,
+    generationCount,
+    loadCandidateImage,
+    recordGenerationCost,
+    resetGenerationCost,
+  })
 
-      // 状態をリセット
-      setOriginalImage(null)
-      setCandidateImages(new Map())
-
-      // 現在のスライドIDを記憶
-      prevSlideIdRef.current = slide.id
-
-      // 候補がある場合はオリジナル画像をプリロード
-      if (slide.generatedCandidates.length > 0) {
-        preloadOriginalImage()
-      }
-    }
-  }, [
-    slide.id,
-    slide.generatedCandidates.length,
-    cleanupImageUrls,
-    preloadOriginalImage,
-  ])
-
-  // ========================================
-  // 画像読み込み関数
-  // ========================================
-
-  /**
-   * オリジナル画像を読み込む（遅延ロード用）
-   * マウスオーバー時など、必要に応じて呼び出される
-   */
-  const loadOriginalImage = async () => {
-    if (originalImage) return
-
-    try {
-      const blob = await loadSlideImage(projectId, slide.id, 'original')
-      const url = URL.createObjectURL(blob)
-      setOriginalImage(url)
-    } catch (err) {
-      console.error('オリジナル画像の読み込みエラー:', err)
-    }
-  }
-
-  /**
-   * 候補画像を読み込む（遅延ロード）
-   * 候補画像リストに表示される際に呼び出される
-   */
-  const loadCandidateImage = async (generatedId: string) => {
-    if (candidateImages.has(generatedId)) {
-      return
-    }
-
-    try {
-      const blob = await loadSlideImage(
-        projectId,
-        slide.id,
-        'generated',
-        generatedId,
-      )
-      if (blob) {
-        const url = URL.createObjectURL(blob)
-        setCandidateImages((prev) => new Map(prev).set(generatedId, url))
-      }
-    } catch (err) {
-      console.error(`候補画像の読み込みエラー (${generatedId}):`, err)
-      setCandidateImages((prev) => new Map(prev).set(generatedId, null))
-    }
-  }
-
-  // ========================================
-  // 生成処理
-  // ========================================
-
-  /**
-   * プロンプト入力のバリデーション
-   * @returns バリデーション成功時true、失敗時false
-   */
-  const validatePrompt = (): boolean => {
-    // APIキーがない場合はダイアログを表示
-    if (!hasApiKey()) {
-      setShowApiKeyDialog(true)
-      return false
-    }
-
-    // プロンプトが空の場合はエラー表示
-    if (!prompt.trim()) {
-      setValidationError('修正内容を入力してください')
-      promptRef.current?.focus()
-      return false
-    }
-
-    return true
-  }
-
-  /**
-   * 生成された画像を保存してメタデータを更新
-   */
-  const saveGeneratedImages = async (
-    generatedImages: Array<{
-      id: string
-      dataUrl: string
-      timestamp: number
-    }>,
-  ) => {
-    const newCandidates = []
-
-    for (let i = 0; i < generatedImages.length; i++) {
-      const generated = generatedImages[i]
-      setGenerationProgress({ current: i + 2, total: generationCount + 1 })
-
-      // Data URLをBlobに変換
-      const generatedBlob = await dataUrlToBlob(generated.dataUrl)
-
-      // 生成画像を保存
-      await saveSlideImage(
-        projectId,
-        slide.id,
-        'generated',
-        generatedBlob,
-        generated.id,
-      )
-
-      // 候補リストに追加
-      newCandidates.push({
-        id: generated.id,
-        prompt,
-        timestamp: new Date(generated.timestamp).toISOString(),
-      })
-
-      // 候補画像をプリロード
-      await loadCandidateImage(generated.id)
-    }
-
-    // スライドメタデータを更新
-    const updatedSlide: Slide = {
-      ...slide,
-      lastPrompt: prompt,
-      generatedCandidates: [...newCandidates, ...slide.generatedCandidates],
-    }
-
-    const updatedSlides = allSlides.map((s) =>
-      s.id === slide.id ? updatedSlide : s,
-    )
-    await saveSlides(projectId, updatedSlides)
-
-    // 更新を通知
-    onSlideUpdate()
-  }
-
-  // 生成ボタンクリック
-  const handleGenerate = async () => {
-    // バリデーション
-    if (!validatePrompt()) {
-      return
-    }
-
-    // 状態をリセット
-    setValidationError(null)
-    setGenerationError(null)
-    setIsGenerating(true)
-    setGenerationProgress({ current: 0, total: generationCount })
-    setLastGenerationCost(null)
-
-    // GA4: 生成開始イベント
-    const startTime = Date.now()
-    trackGenerationStarted(generationCount)
-
-    try {
-      // コスト計算
-      const costEstimate = calculateGenerationCost(prompt, generationCount)
-      setLastGenerationCost(costEstimate.totalCost)
-
-      // APIキー取得
-      const apiKey = getApiKey()
-      if (!apiKey) {
-        throw new Error('APIキーが設定されていません')
-      }
-
-      // 元画像を読み込む
-      const originalImage = await loadCurrentSlideImage(projectId, slide)
-      if (!originalImage) {
-        throw new Error('元画像の読み込みに失敗しました')
-      }
-
-      // 複数の画像を一度に生成
-      setGenerationProgress({ current: 1, total: generationCount })
-      const generatedImages = await generateSlideVariations(
-        apiKey,
-        originalImage,
-        prompt,
-        generationCount,
-      )
-
-      // 生成された画像を保存してメタデータ更新
-      await saveGeneratedImages(generatedImages)
-
-      // GA4: 生成完了イベント
-      const duration = Date.now() - startTime
-      trackGenerationCompleted(generationCount, duration)
-      trackFirstGenerationCompleted(generationCount, duration)
-    } catch (err) {
-      console.error('スライド修正エラー:', err)
-      const errorMessage =
-        err instanceof Error ? err.message : 'スライドの修正に失敗しました'
-      setGenerationError(errorMessage)
-
-      // GA4: 生成失敗イベント
-      trackGenerationFailed(errorMessage)
-    } finally {
-      setIsGenerating(false)
-      setGenerationProgress(null)
-    }
-  }
-
-  /**
-   * 候補画像を選択してスライドに適用する
-   * @param generatedId 生成画像ID（nullの場合はオリジナルに戻す）
-   */
-  const handleSelectCandidate = async (generatedId: string | null) => {
-    try {
-      const updatedSlide: Slide = {
-        ...slide,
-        currentGeneratedId: generatedId === null ? undefined : generatedId,
-      }
-
-      const updatedSlides = allSlides.map((s) =>
-        s.id === slide.id ? updatedSlide : s,
-      )
-      await saveSlides(projectId, updatedSlides)
-
-      onSlideUpdate()
-    } catch (err) {
-      console.error('候補適用エラー:', err)
-      setGenerationError('候補の適用に失敗しました')
-    }
-  }
+  // 生成処理はuseSlideGenerationフックに移行
 
   return (
     <>
@@ -424,13 +150,7 @@ export function ControlPanel({
                       <div className="flex cursor-help items-center gap-1 text-xs text-slate-500">
                         <span>
                           コスト推定{' '}
-                          {formatCostJPY(
-                            calculateGenerationCost(
-                              prompt || 'スライドを修正',
-                              generationCount,
-                            ).totalCost,
-                            exchangeRate,
-                          )}
+                          {formatCostJPY(costEstimate.totalCost, exchangeRate)}
                         </span>
                         <HelpCircle className="h-3.5 w-3.5" />
                       </div>
@@ -444,8 +164,7 @@ export function ControlPanel({
                           <span>入力:</span>
                           <span>
                             {formatCostJPY(
-                              calculateGenerationCost(prompt, generationCount)
-                                .inputCost,
+                              costEstimate.inputCost,
                               exchangeRate,
                             )}
                           </span>
@@ -454,8 +173,7 @@ export function ControlPanel({
                           <span>出力 (×{generationCount}):</span>
                           <span>
                             {formatCostJPY(
-                              calculateGenerationCost(prompt, generationCount)
-                                .outputCost,
+                              costEstimate.outputCost,
                               exchangeRate,
                             )}
                           </span>
@@ -464,18 +182,14 @@ export function ControlPanel({
                           <span>合計:</span>
                           <span>
                             {formatCostJPY(
-                              calculateGenerationCost(prompt, generationCount)
-                                .totalCost,
+                              costEstimate.totalCost,
                               exchangeRate,
                             )}
                           </span>
                         </div>
                         <div className="mt-1 text-[10px] text-slate-400">
-                          {formatCost(
-                            calculateGenerationCost(prompt, generationCount)
-                              .totalCost,
-                          )}{' '}
-                          × ¥{exchangeRate.toFixed(2)}
+                          {formatCost(costEstimate.totalCost)} × ¥
+                          {exchangeRate.toFixed(2)}
                         </div>
                       </div>
                     </HoverCardContent>
