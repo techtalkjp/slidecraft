@@ -1,0 +1,6 @@
+# SlideCraft robots.txt
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://www.slidecraft.work/sitemap.xml

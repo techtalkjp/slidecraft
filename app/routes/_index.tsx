@@ -17,16 +17,28 @@ import { Card } from '~/components/ui/card'
 import type { Route } from './+types/_index'
 
 export function meta(): Route.MetaDescriptors {
+  const title =
+    'SlideCraft - AIスライドをピンポイント修正 | 3枚だけ直したい時の解決策'
+  const description =
+    'Nano Banana Pro、Notebook LM生成スライド、3枚だけ直したいのに全体が変わる問題を解決。気になるスライドだけピンポイント修正、他は守る。1分で完了、1スライド約20円。'
+  const url = 'https://www.slidecraft.work'
+
   return [
-    {
-      title:
-        'SlideCraft - AIスライドをピンポイント修正 | 3枚だけ直したい時の解決策',
-    },
-    {
-      name: 'description',
-      content:
-        'Nano Banana Pro、Notebook LM生成スライド、3枚だけ直したいのに全体が変わる問題を解決。気になるスライドだけピンポイント修正、他は守る。1分で完了、1スライド約20円。',
-    },
+    { title },
+    { name: 'description', content: description },
+
+    // Open Graph
+    { property: 'og:type', content: 'website' },
+    { property: 'og:url', content: url },
+    { property: 'og:title', content: title },
+    { property: 'og:description', content: description },
+    { property: 'og:site_name', content: 'SlideCraft' },
+    { property: 'og:locale', content: 'ja_JP' },
+
+    // Twitter Card
+    { name: 'twitter:card', content: 'summary_large_image' },
+    { name: 'twitter:title', content: title },
+    { name: 'twitter:description', content: description },
   ]
 }
 

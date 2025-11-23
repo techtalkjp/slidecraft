@@ -34,6 +34,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
+        <link rel="canonical" href="https://www.slidecraft.work" />
         {/* Google Analytics */}
         <script
           async
@@ -48,6 +49,39 @@ export function Layout({ children }: { children: React.ReactNode }) {
               gtag('js', new Date());
               gtag('config', 'G-MYGWWZDCP2');
             `,
+          }}
+        />
+        {/* Structured Data (JSON-LD) */}
+        <script
+          type="application/ld+json"
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: Structured data requires inline JSON-LD
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'SoftwareApplication',
+              name: 'SlideCraft',
+              applicationCategory: 'BusinessApplication',
+              operatingSystem: 'Web Browser',
+              offers: {
+                '@type': 'Offer',
+                price: '0',
+                priceCurrency: 'JPY',
+              },
+              description:
+                'AI生成スライドを1枚単位で修正できるWebアプリケーション。Notebook LMやNano Banana Proで生成したスライドのピンポイント修正が可能。',
+              url: 'https://www.slidecraft.work',
+              author: {
+                '@type': 'Organization',
+                name: 'TechTalk Inc.',
+                url: 'https://www.techtalk.jp',
+              },
+              softwareVersion: '1.0',
+              aggregateRating: {
+                '@type': 'AggregateRating',
+                ratingValue: '5',
+                ratingCount: '1',
+              },
+            }),
           }}
         />
       </head>
