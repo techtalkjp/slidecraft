@@ -126,7 +126,7 @@ export default function Index() {
                 よくある質問
               </a>
               <a
-                href="https://github.com/coji/slidecraft"
+                href="https://github.com/techtalkjp/slidecraft"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-slate-400 transition-colors hover:text-slate-600"
@@ -161,11 +161,9 @@ export default function Index() {
                 問題を解決。
               </h1>
               <p className="max-w-lg text-lg leading-relaxed text-slate-500">
-                気になるスライドだけピンポイント修正。他は守る。1分で完了。
+                気になるスライドだけを修正。他は守る。1分で完了。
                 <br />
-                Nano Banana ProやNotebook LMユーザーのための、
-                <br />
-                質実剛健な補正ツール。
+                Nano Banana Pro・Notebook LMユーザー向けの補正ツール。
               </p>
               <div className="flex flex-col gap-4 sm:flex-row">
                 <Button asChild className="group">

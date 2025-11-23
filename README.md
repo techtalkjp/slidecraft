@@ -1,87 +1,128 @@
-# Welcome to React Router!
+# SlideCraft
 
-A modern, production-ready template for building full-stack React applications using React Router.
+AI生成スライドをピンポイント修正するWebアプリケーション。
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/remix-run/react-router-templates/tree/main/default)
+「30枚のうち3枚だけ直したいのに、全体を再生成すると完璧だった27枚まで変わってしまう」という問題を解決します。
 
-## Features
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-- 🚀 Server-side rendering
-- ⚡️ Hot Module Replacement (HMR)
-- 📦 Asset bundling and optimization
-- 🔄 Data loading and mutations
-- 🔒 TypeScript by default
-- 🎉 TailwindCSS for styling
-- 📖 [React Router docs](https://reactrouter.com/)
+## 概要
 
-## Getting Started
+Nano Banana Pro (Gemini Pro 3) やGoogle Notebook LMで生成したスライドの、気になる部分だけを1枚単位で修正できます。
 
-### Installation
+- **ピンポイント修正**: 気になるスライドだけを選んで修正、他のスライドは一切変更されません
+- **複数候補生成**: 1回の修正で最大4つの候補を同時生成し、並べて比較できます
+- **自然な日本語指示**: 「背景を白に」「タイトルを大きく」といった自然な日本語で修正内容を指示できます
+- **ブラウザ完結**: 全てのデータはブラウザ内で処理され、PDFファイルが外部サーバーに送信されることはありません
+- **明朗な料金**: アプリ自体は完全無料。かかるのはGoogle Gemini APIの利用料のみ（1スライド修正あたり約20円）
 
-Install the dependencies:
+## 技術スタック
 
-```bash
-npm install
-```
+- **Frontend**: React Router v7, shadcn/ui, TailwindCSS v4
+- **AI**: Vercel AI SDK with Google Gemini API (nano banana pro model)
+- **Language**: TypeScript
+- **Build**: Vite
+- **Package Manager**: pnpm
 
-### Development
+## セットアップ
 
-Start the development server with HMR:
+### 前提条件
 
-```bash
-npm run dev
-```
+- Node.js 18以上
+- pnpm 8以上
+- Google AI Studio APIキー
 
-Your application will be available at `http://localhost:5173`.
-
-## Building for Production
-
-Create a production build:
+### インストール
 
 ```bash
-npm run build
+# リポジトリのクローン
+git clone https://github.com/techtalkjp/slidecraft.git
+cd slidecraft
+
+# 依存関係のインストール
+pnpm install
 ```
 
-## Deployment
-
-### Docker Deployment
-
-To build and run using Docker:
+### 開発サーバーの起動
 
 ```bash
-docker build -t my-app .
-
-# Run the container
-docker run -p 3000:3000 my-app
+pnpm dev
 ```
 
-The containerized application can be deployed to any platform that supports Docker, including:
+http://localhost:5173 でアプリケーションが起動します。
+
+## 開発コマンド
+
+```bash
+# 開発サーバー起動（HMR有効）
+pnpm dev
+
+# コードの検証（フォーマット、リント、型チェック）
+pnpm validate
+
+# 型チェックのみ
+pnpm typecheck
+
+# 本番ビルド
+pnpm build
+
+# 本番ビルドをローカルで実行
+pnpm start
+
+# フォーマット修正
+pnpm format:fix
+```
+
+## プロジェクト構成
+
+```
+├── app/
+│   ├── routes/              # ルート定義とページコンポーネント
+│   │   ├── _index.tsx      # ランディングページ
+│   │   ├── _app/           # アプリケーション本体
+│   │   ├── terms.tsx       # 利用規約
+│   │   └── privacy.tsx     # プライバシーポリシー
+│   ├── components/         # 再利用可能なコンポーネント
+│   ├── lib/               # ユーティリティ関数
+│   └── root.tsx           # ルートレイアウト
+├── docs/                  # 設計ドキュメント
+├── references/            # 参考実装
+└── public/               # 静的ファイル
+```
+
+## デプロイ
+
+### Docker
+
+```bash
+# イメージのビルド
+docker build -t slidecraft .
+
+# コンテナの起動
+docker run -p 3000:3000 slidecraft
+```
+
+### その他のプラットフォーム
+
+以下のプラットフォームでデプロイ可能です：
 
 - AWS ECS
 - Google Cloud Run
 - Azure Container Apps
-- Digital Ocean App Platform
 - Fly.io
 - Railway
 
-### DIY Deployment
+## ライセンス
 
-If you're familiar with deploying Node applications, the built-in app server is production-ready.
+MIT License - 詳細は [LICENSE](LICENSE) ファイルを参照してください。
 
-Make sure to deploy the output of `npm run build`
+## 開発元
 
-```
-├── package.json
-├── package-lock.json (or pnpm-lock.yaml, or bun.lockb)
-├── build/
-│   ├── client/    # Static assets
-│   └── server/    # Server-side code
-```
+TechTalk Inc.
 
-## Styling
-
-This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever CSS framework you prefer.
+- Website: https://www.techtalk.jp
+- Service: https://www.slidecraft.work
 
 ---
 
-Built with ❤️ using React Router.
+Built with React Router v7
