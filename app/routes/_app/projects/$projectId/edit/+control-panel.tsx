@@ -1,8 +1,20 @@
-import { AlertCircle, Check, DollarSign, Loader2, Sparkles } from 'lucide-react'
+import {
+  AlertCircle,
+  Check,
+  DollarSign,
+  HelpCircle,
+  Loader2,
+  Sparkles,
+} from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { ApiKeyDialog } from '~/components/api-key-dialog'
 import { Alert, AlertDescription } from '~/components/ui/alert'
 import { Button } from '~/components/ui/button'
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '~/components/ui/hover-card'
 import { Textarea } from '~/components/ui/textarea'
 import {
   trackFirstGenerationCompleted,
@@ -283,24 +295,27 @@ export function ControlPanel({
                   生成候補数
                 </div>
                 {exchangeRate && (
-                  <div
-                    className="group relative cursor-help text-xs text-slate-500"
-                    title="コスト詳細を表示"
-                  >
-                    コスト推定{' '}
-                    {formatCostJPY(
-                      calculateGenerationCost(
-                        prompt || 'スライドを修正',
-                        generationCount,
-                      ).totalCost,
-                      exchangeRate,
-                    )}
-                    {/* ホバー時の詳細 */}
-                    <div className="invisible absolute top-6 right-0 z-10 w-64 rounded-md border border-slate-200 bg-white p-3 text-xs shadow-lg group-hover:visible">
+                  <HoverCard>
+                    <HoverCardTrigger asChild>
+                      <div className="flex cursor-help items-center gap-1 text-xs text-slate-500">
+                        <span>
+                          コスト推定{' '}
+                          {formatCostJPY(
+                            calculateGenerationCost(
+                              prompt || 'スライドを修正',
+                              generationCount,
+                            ).totalCost,
+                            exchangeRate,
+                          )}
+                        </span>
+                        <HelpCircle className="h-3.5 w-3.5" />
+                      </div>
+                    </HoverCardTrigger>
+                    <HoverCardContent className="w-64" align="end">
                       <div className="mb-2 font-medium text-slate-700">
                         コスト見積もり
                       </div>
-                      <div className="space-y-1 text-slate-600">
+                      <div className="space-y-1 text-xs text-slate-600">
                         <div className="flex justify-between">
                           <span>入力:</span>
                           <span>
@@ -339,8 +354,8 @@ export function ControlPanel({
                           × ¥{exchangeRate.toFixed(2)}
                         </div>
                       </div>
-                    </div>
-                  </div>
+                    </HoverCardContent>
+                  </HoverCard>
                 )}
               </div>
               <div className="flex gap-2">
