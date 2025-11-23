@@ -1,0 +1,24 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.3.7/schema.json",
+  "files": {
+    "includes": ["**", "!app/app.css"]
+  },
+  "assist": { "actions": { "source": { "organizeImports": "off" } } },
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "suspicious": {
+        "useAwait": "error"
+      },
+      "a11y": {
+        "noSvgWithoutTitle": "off"
+      }
+    }
+  }
+}
