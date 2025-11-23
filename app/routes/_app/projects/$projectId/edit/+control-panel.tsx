@@ -374,13 +374,13 @@ export function ControlPanel({
               </div>
             </div>
 
-            {/* 前回の修正コスト */}
+            {/* 修正コスト */}
             {lastGenerationCost !== null && !isGenerating && (
               <div className="rounded-md bg-green-50 p-3">
                 <div className="flex items-center gap-2 text-sm text-green-700">
                   <DollarSign className="h-4 w-4" />
                   <span>
-                    前回の修正コスト: {formatCost(lastGenerationCost)}
+                    修正コスト: {formatCost(lastGenerationCost)}
                     {exchangeRate && (
                       <span className="ml-1 text-green-600">
                         ({formatCostJPY(lastGenerationCost, exchangeRate)})
