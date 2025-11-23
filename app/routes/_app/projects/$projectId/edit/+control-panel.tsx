@@ -51,6 +51,7 @@ export function ControlPanel({
   allSlides,
   onSlideUpdate,
 }: ControlPanelProps) {
+  // 生成処理の状態
   const [prompt, setPrompt] = useState(slide.lastPrompt || '')
   const [generationCount, setGenerationCount] = useState(1)
   const [isGenerating, setIsGenerating] = useState(false)
@@ -60,14 +61,20 @@ export function ControlPanel({
   } | null>(null)
   const [validationError, setValidationError] = useState<string | null>(null)
   const [generationError, setGenerationError] = useState<string | null>(null)
+
+  // 画像管理の状態
   const [candidateImages, setCandidateImages] = useState<
     Map<string, string | null>
   >(new Map())
   const [originalImage, setOriginalImage] = useState<string | null>(null)
+
+  // コスト管理の状態
   const [lastGenerationCost, setLastGenerationCost] = useState<number | null>(
     null,
   )
   const [exchangeRate, setExchangeRate] = useState<number | null>(null)
+
+  // その他の状態
   const [showApiKeyDialog, setShowApiKeyDialog] = useState(false)
   const promptRef = useRef<HTMLTextAreaElement>(null)
   const prevSlideIdRef = useRef<string>(slide.id)
@@ -106,10 +113,14 @@ export function ControlPanel({
   }, [projectId, slide.id])
 
   // ========================================
-  // 為替レート取得
+  // コスト計算: 為替レート取得
   // ========================================
 
-  // 為替レートを取得（初回のみ）
+  /**
+   * USD/JPY為替レートを取得（初回のみ）
+   * 外部システム: exchangerate-api.comのREST API
+   * 24時間キャッシュされるため、頻繁なリクエストは発生しない
+   */
   useEffect(() => {
     getExchangeRate().then(setExchangeRate)
   }, [])
