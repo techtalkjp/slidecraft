@@ -36,4 +36,4 @@ SlideCraft自体の利用は完全無料である。かかるのはGoogle Gemini
 
 ## 技術要件
 
-Chrome、Edge、Braveといったモダンブラウザで動作する。PC・タブレットでの利用を推奨。Google AI StudioでAPIキーを取得する必要があるが、5分程度で完了する。月額料金はかからず、使った分だけのAPI料金がGoogleから直接請求される。
+Chrome、Safari、Edgeといったモダンブラウザで動作する。PC・タブレットでの利用を推奨。Google AI StudioでAPIキーを取得する必要があるが、5分程度で完了する。月額料金はかからず、使った分だけのAPI料金がGoogleから直接請求される。
