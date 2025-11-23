@@ -82,7 +82,7 @@ function ProjectCard({
             />
           ) : (
             <div className="flex h-full items-center justify-center">
-              <FileText className="h-12 w-12 text-slate-300" />
+              <FileText className="h-16 w-16 text-slate-300" />
             </div>
           )}
         </div>
@@ -155,7 +155,9 @@ export default function Index({ loaderData }: Route.ComponentProps) {
 
       {projects.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16">
-          <FileText className="mb-4 h-16 w-16 text-slate-300" />
+          <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-slate-100">
+            <FileText className="h-12 w-12 text-slate-400" />
+          </div>
           <h2 className="mb-2 text-xl font-semibold text-slate-700">
             プロジェクトがありません
           </h2>

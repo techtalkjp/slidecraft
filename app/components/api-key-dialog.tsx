@@ -1,4 +1,4 @@
-import { ExternalLink, Key, Save } from 'lucide-react'
+import { Check, ExternalLink, Key } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '~/components/ui/button'
 import {
@@ -73,7 +73,7 @@ export function ApiKeyDialog({
               className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
             >
               Google AI StudioでAPIキーを取得
-              <ExternalLink className="h-3 w-3" />
+              <ExternalLink className="h-4 w-4" />
             </a>
           </div>
 
@@ -114,7 +114,7 @@ export function ApiKeyDialog({
             キャンセル
           </Button>
           <Button onClick={handleSave}>
-            <Save className="mr-2 h-4 w-4" />
+            <Check className="mr-2 h-4 w-4" />
             保存
           </Button>
         </DialogFooter>

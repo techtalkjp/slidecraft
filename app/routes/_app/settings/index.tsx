@@ -1,4 +1,4 @@
-import { AlertCircle, ExternalLink, Key, Save } from 'lucide-react'
+import { AlertCircle, Check, ExternalLink, Key } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate, useRouteError } from 'react-router'
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert'
@@ -84,7 +84,7 @@ export default function Settings({ loaderData }: Route.ComponentProps) {
               className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
             >
               Google AI StudioでAPIキーを取得
-              <ExternalLink className="h-3 w-3" />
+              <ExternalLink className="h-4 w-4" />
             </a>
           </div>
 
@@ -121,7 +121,7 @@ export default function Settings({ loaderData }: Route.ComponentProps) {
           )}
 
           <Button onClick={handleSave} className="w-full">
-            <Save className="mr-2 h-4 w-4" />
+            <Check className="mr-2 h-4 w-4" />
             保存
           </Button>
         </CardContent>

@@ -115,15 +115,15 @@ export default function Upload() {
           className={`mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full transition-colors duration-200 ${
             isDragging
               ? 'bg-blue-100 text-blue-700'
-              : 'bg-blue-50 text-blue-600'
+              : 'bg-slate-100 text-slate-600'
           }`}
         >
           {isProcessing ? (
-            <Loader2 className="h-10 w-10 animate-spin" />
+            <Loader2 className="h-8 w-8 animate-spin" />
           ) : isDragging ? (
-            <FolderInput className="h-10 w-10 animate-bounce" />
+            <FolderInput className="h-8 w-8" />
           ) : (
-            <FileText className="h-10 w-10" />
+            <FileText className="h-8 w-8" />
           )}
         </div>
 
@@ -168,7 +168,7 @@ export default function Upload() {
             asChild
           >
             <div>
-              <UploadIcon className="mr-2 h-5 w-5" />
+              <UploadIcon className="mr-2 h-4 w-4" />
               <span>
                 {isProcessing ? 'PDFを処理中...' : 'PDFをアップロード'}
               </span>
@@ -183,12 +183,12 @@ export default function Upload() {
           />
         </label>
 
-        <p className="mt-4 text-xs text-slate-400">
-          💡 このエリアにPDFファイルをドラッグ&ドロップできます
+        <p className="mt-4 text-xs text-slate-500">
+          このエリアにPDFファイルをドラッグ&ドロップできます
           <br />
           対応フォーマット: PDFのみ
           <br />
-          処理はお使いのブラウザ内でローカルに行われます。
+          処理はお使いのブラウザ内でローカルに行われます
         </p>
       </Card>
 
