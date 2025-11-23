@@ -44,6 +44,8 @@ export function meta(): Route.MetaDescriptors {
 
     // Twitter Card
     { name: 'twitter:card', content: 'summary_large_image' },
+    { name: 'twitter:site', content: '@techtalkjp' },
+    { name: 'twitter:creator', content: '@techtalkjp' },
     { name: 'twitter:title', content: title },
     { name: 'twitter:description', content: description },
     { name: 'twitter:image', content: `${url}/ogp.jpg` },
