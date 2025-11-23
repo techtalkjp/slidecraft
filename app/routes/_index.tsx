@@ -601,33 +601,61 @@ export default function Index() {
             よくある質問
           </h2>
           <div className="space-y-6">
-            {[
-              {
-                q: 'APIキーの取得は難しくないですか？',
-                a: 'Google AI Studioで5分程度で取得可能です。クレジットカードの登録が必要ですが、無料枠内で収まる場合も多いです。手順はチュートリアルで案内します。',
-              },
-              {
-                q: '本当にセキュリティは安全ですか？',
-                a: 'はい。PDFの解析・画像化は全てお客様のブラウザ内で行われます。ファイルそのものが外部サーバーに送信されることはありません。',
-              },
-              {
-                q: '元のPDFは上書きされますか？',
-                a: 'いいえ。元のPDFは変更されず、修正が反映された新しいPDFとしてエクスポートされます。いつでもやり直しが可能です。',
-              },
-              {
-                q: '対応ブラウザは？',
-                a: 'Chrome、Safari、Edgeなどのモダンブラウザ（PC推奨）で動作します。',
-              },
-            ].map((item) => (
-              <div key={item.q} className="border-b border-slate-100 pb-6">
-                <h3 className="mb-2 flex items-start gap-3 font-bold text-slate-800">
-                  <span className="text-blue-500">Q.</span> {item.q}
-                </h3>
-                <p className="pl-7 text-sm leading-relaxed text-slate-600">
-                  {item.a}
-                </p>
-              </div>
-            ))}
+            {/* Q1: API Key */}
+            <div className="border-b border-slate-100 pb-6">
+              <h3 className="mb-2 flex items-start gap-3 font-bold text-slate-800">
+                <span className="text-blue-500">Q.</span>{' '}
+                APIキーの取得は難しくないですか？
+              </h3>
+              <p className="pl-7 text-sm leading-relaxed text-slate-600">
+                Google AI
+                Studioで5分程度で取得可能です。クレジットカードの登録が必要ですが、無料枠内で収まる場合も多いです。
+                <Link
+                  to="/guides/api-key-setup"
+                  className="ml-1 font-medium text-blue-600 hover:underline"
+                >
+                  詳しい手順はこちら →
+                </Link>
+              </p>
+            </div>
+
+            {/* Q2: Security */}
+            <div className="border-b border-slate-100 pb-6">
+              <h3 className="mb-2 flex items-start gap-3 font-bold text-slate-800">
+                <span className="text-blue-500">Q.</span>{' '}
+                本当にセキュリティは安全ですか？
+              </h3>
+              <p className="pl-7 text-sm leading-relaxed text-slate-600">
+                はい。PDFの解析・画像化は全てお客様のブラウザ内で行われます。ファイルそのものが外部サーバーに送信されることはありません。
+                <Link
+                  to="/guides/security"
+                  className="ml-1 font-medium text-blue-600 hover:underline"
+                >
+                  セキュリティの詳細 →
+                </Link>
+              </p>
+            </div>
+
+            {/* Q3: PDF Overwrite */}
+            <div className="border-b border-slate-100 pb-6">
+              <h3 className="mb-2 flex items-start gap-3 font-bold text-slate-800">
+                <span className="text-blue-500">Q.</span>{' '}
+                元のPDFは上書きされますか？
+              </h3>
+              <p className="pl-7 text-sm leading-relaxed text-slate-600">
+                いいえ。元のPDFは変更されず、修正が反映された新しいPDFとしてエクスポートされます。いつでもやり直しが可能です。
+              </p>
+            </div>
+
+            {/* Q4: Browser Support */}
+            <div className="border-b border-slate-100 pb-6">
+              <h3 className="mb-2 flex items-start gap-3 font-bold text-slate-800">
+                <span className="text-blue-500">Q.</span> 対応ブラウザは？
+              </h3>
+              <p className="pl-7 text-sm leading-relaxed text-slate-600">
+                Chrome、Safari、Edgeなどのモダンブラウザ（PC推奨）で動作します。
+              </p>
+            </div>
           </div>
         </div>
       </section>
