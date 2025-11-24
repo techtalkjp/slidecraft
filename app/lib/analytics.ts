@@ -9,23 +9,28 @@ declare global {
   }
 }
 
+// Helper to check if analytics should be enabled
+function isAnalyticsEnabled(): boolean {
+  return import.meta.env.PROD && typeof window !== 'undefined' && !!window.gtag
+}
+
 export function trackEvent(
   eventName: string,
   parameters?: Record<string, unknown>,
 ) {
-  if (typeof window !== 'undefined' && window.gtag) {
+  if (isAnalyticsEnabled()) {
     if (parameters) {
-      window.gtag('event', eventName, parameters)
+      window.gtag!('event', eventName, parameters)
     } else {
-      window.gtag('event', eventName)
+      window.gtag!('event', eventName)
     }
   }
 }
 
 // Page view tracking for client-side navigation
 export function trackPageView(path: string, title?: string) {
-  if (typeof window !== 'undefined' && window.gtag) {
-    window.gtag('config', 'G-MYGWWZDCP2', {
+  if (isAnalyticsEnabled()) {
+    window.gtag!('config', 'G-MYGWWZDCP2', {
       page_path: path,
       page_title: title || document.title,
     })
@@ -100,6 +105,10 @@ export function trackFirstGenerationCompleted(
 }
 
 export function trackRepeatUser() {
+  if (!import.meta.env.PROD || typeof window === 'undefined') {
+    return
+  }
+
   const visitCount = Number.parseInt(
     localStorage.getItem('visit_count') || '0',
     10,

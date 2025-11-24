@@ -30,6 +30,7 @@ export const links: Route.LinksFunction = () => [
 export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation()
   const canonicalUrl = `https://www.slidecraft.work${location.pathname}`
+  const isProduction = import.meta.env.PROD
 
   return (
     <html lang="ja">
@@ -39,22 +40,26 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Meta />
         <Links />
         <link rel="canonical" href={canonicalUrl} />
-        {/* Google Analytics */}
-        <script
-          async
-          src="https://www.googletagmanager.com/gtag/js?id=G-MYGWWZDCP2"
-        />
-        <script
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: Google Analytics initialization requires inline script
-          dangerouslySetInnerHTML={{
-            __html: `
+        {/* Google Analytics - Only in production */}
+        {isProduction && (
+          <>
+            <script
+              async
+              src="https://www.googletagmanager.com/gtag/js?id=G-MYGWWZDCP2"
+            />
+            <script
+              // biome-ignore lint/security/noDangerouslySetInnerHtml: Google Analytics initialization requires inline script
+              dangerouslySetInnerHTML={{
+                __html: `
               window.dataLayer = window.dataLayer || [];
               function gtag(){dataLayer.push(arguments);}
               gtag('js', new Date());
               gtag('config', 'G-MYGWWZDCP2');
             `,
-          }}
-        />
+              }}
+            />
+          </>
+        )}
         {/* Structured Data (JSON-LD) */}
         <script
           type="application/ld+json"
