@@ -17,7 +17,10 @@ export function meta(): Route.MetaDescriptors {
     { property: 'og:url', content: url },
     { property: 'og:title', content: title },
     { property: 'og:description', content: description },
-    { property: 'og:image', content: 'https://www.slidecraft.work/ogp-image.jpg' },
+    {
+      property: 'og:image',
+      content: 'https://www.slidecraft.work/ogp-image.jpg',
+    },
     {
       property: 'og:image:alt',
       content: 'SlideCraft - セキュリティとプライバシー',
@@ -272,7 +275,6 @@ export default function SecurityGuide() {
                   避けるべき利用シーン
                 </h4>
                 <ul className="space-y-2 text-sm text-red-800">
-                  <li>● 未公開の財務情報や経営戦略を含むスライド</li>
                   <li>● 個人情報（氏名、住所、メールアドレス等）を含むもの</li>
                   <li>● NDA（機密保持契約）で保護されている情報</li>
                   <li>● 医療情報や法的に保護された情報</li>

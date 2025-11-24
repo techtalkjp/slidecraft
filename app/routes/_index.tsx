@@ -193,9 +193,11 @@ export default function Index({ loaderData }: Route.ComponentProps) {
                 しまう問題を解決。
               </h1>
               <p className="max-w-lg text-lg leading-relaxed text-slate-500">
-                気になるスライドだけを修正。1分で完了。
+                気になるスライドだけをピンポイント修正。
                 <br />
-                Nano Banana Pro・Notebook LMユーザー向けの補正ツール。
+                Nano Banana Pro・Notebook LMユーザー向け
+                <br />
+                補正ツール。
               </p>
               <div className="flex flex-col gap-4 sm:flex-row">
                 <Button asChild className="group">
@@ -206,7 +208,7 @@ export default function Index({ loaderData }: Route.ComponentProps) {
                 </Button>
               </div>
               <p className="text-xs text-slate-400">
-                ※アプリ利用料無料 / API利用料のみ（約20円/スライド）
+                ※アプリ利用料無料 / Gemini API利用料のみ（約20円/スライド）
               </p>
             </div>
 
