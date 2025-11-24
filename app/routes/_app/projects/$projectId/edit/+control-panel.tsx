@@ -64,7 +64,6 @@ export function ControlPanel({
     setShowApiKeyDialog,
     promptRef,
     handleGenerate,
-    handleSelectCandidate,
   } = useSlideGeneration({
     projectId,
     slide,
@@ -120,7 +119,6 @@ export function ControlPanel({
               isGenerating={isGenerating}
               loadOriginalImage={loadOriginalImage}
               loadCandidateImage={loadCandidateImage}
-              onSelectCandidate={handleSelectCandidate}
             />
           </div>
         </div>

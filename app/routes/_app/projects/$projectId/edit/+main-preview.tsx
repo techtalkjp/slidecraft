@@ -1,4 +1,3 @@
-import { saveSlides } from '~/lib/slides-repository.client'
 import type { Slide } from '~/lib/types'
 import { ImageCanvas } from './components/image-canvas'
 import { PreviewHeader } from './components/preview-header'
@@ -19,8 +18,6 @@ export function MainPreview({
   slide,
   slideNumber,
   totalSlides,
-  onSlideUpdate,
-  allSlides,
 }: MainPreviewProps) {
   // ========================================
   // カスタムフック: 画像読み込み
@@ -45,32 +42,6 @@ export function MainPreview({
     handleMouseUp,
   } = useImageZoomPan()
 
-  // ========================================
-  // スライド復元処理
-  // ========================================
-
-  /**
-   * 元に戻すボタンのクリックハンドラー
-   * 現在適用されている生成画像をクリアしてオリジナルに戻す
-   */
-  const handleResetToOriginal = async () => {
-    try {
-      const updatedSlide: Slide = {
-        ...slide,
-        currentGeneratedId: undefined,
-      }
-
-      const updatedSlides = allSlides.map((s) =>
-        s.id === slide.id ? updatedSlide : s,
-      )
-      await saveSlides(projectId, updatedSlides)
-
-      onSlideUpdate()
-    } catch (error) {
-      console.error('元画像への復元に失敗しました:', error)
-    }
-  }
-
   const isEdited = slide.currentGeneratedId !== undefined
 
   return (
@@ -80,7 +51,7 @@ export function MainPreview({
         slideNumber={slideNumber}
         totalSlides={totalSlides}
         isEdited={isEdited}
-        onResetToOriginal={handleResetToOriginal}
+        slideId={slide.id}
       />
 
       {/* メインプレビューエリア */}

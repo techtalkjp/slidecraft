@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { Badge } from '~/components/ui/badge'
-import { loadCurrentSlideImage } from '~/lib/slides-repository.client'
+import { loadSlideImage } from '~/lib/slides-repository.client'
 import type { Slide } from '~/lib/types'
 
 interface SidebarProps {
@@ -30,7 +30,15 @@ function SlideThumbnail({
 
     const loadImage = async () => {
       try {
-        const blob = await loadCurrentSlideImage(projectId, slide)
+        const blob = slide.currentGeneratedId
+          ? await loadSlideImage(
+              projectId,
+              slide.id,
+              'generated',
+              slide.currentGeneratedId,
+            )
+          : await loadSlideImage(projectId, slide.id, 'original')
+
         if (mounted) {
           const url = URL.createObjectURL(blob)
           currentUrl = url
@@ -52,7 +60,7 @@ function SlideThumbnail({
         URL.revokeObjectURL(currentUrl)
       }
     }
-  }, [projectId, slide])
+  }, [projectId, slide.id, slide.currentGeneratedId])
 
   const isEdited = slide.currentGeneratedId !== undefined
 

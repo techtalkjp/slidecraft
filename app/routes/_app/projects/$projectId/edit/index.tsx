@@ -9,11 +9,13 @@ import {
 } from '~/components/ui/resizable'
 import { getProject } from '~/lib/projects-repository.client'
 import { loadSlides } from '~/lib/slides-repository.client'
-import { EditorActions } from './+actions'
 import { ControlPanel } from './+control-panel'
+import { EditorActions } from './+editor-actions'
 import { MainPreview } from './+main-preview'
 import { Sidebar } from './+sidebar'
 import type { Route } from './+types/index'
+
+export { clientAction } from './+actions'
 
 export const handle = {
   breadcrumb: (data: Route.ComponentProps['loaderData']) => ({

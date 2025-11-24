@@ -104,12 +104,16 @@ Write design docs and specifications in natural Japanese prose focused on "why" 
 
 ### Document Storage
 
-- Daily research and meeting notes: `docs/YYYY-MM-DD/`
-- File names: Use alphanumeric + Japanese for clarity (e.g., `docs/2025-01-24/useEffect-review.md`)
+All documentation is stored in date-based directories under `docs/journals/`:
+
+- **Location**: `docs/journals/YYYY-MM-DD/`
+- **Work Journal**: `docs/journals/YYYY-MM-DD/journal.md`
+- **Other documents**: Research notes, analysis reports, guides in the same directory
+- **File names**: Use alphanumeric + Japanese for clarity (e.g., `editor-mutation-action-migration-report.md`)
 
 ### Work Journal (Claude Code)
 
-Record development sessions in `docs/journals/YYYY-MM-DD.md`.
+Record development sessions in `docs/journals/YYYY-MM-DD/journal.md`.
 
 **When to record:**
 
