@@ -17,11 +17,7 @@
   },
   "dependencies": {
     "@google/genai": "1.30.0",
-    "@radix-ui/react-dialog": "1.1.15",
-    "@radix-ui/react-hover-card": "1.1.15",
-    "@radix-ui/react-progress": "1.1.8",
     "@radix-ui/react-separator": "1.1.8",
-    "@radix-ui/react-slot": "1.2.4",
     "@radix-ui/react-tooltip": "1.2.8",
     "@react-router/node": "7.9.6",
     "@react-router/serve": "7.9.6",
@@ -30,12 +26,14 @@
     "isbot": "5.1.32",
     "jspdf": "3.0.4",
     "lucide-react": "0.554.0",
+    "next-themes": "0.4.6",
     "pdfjs-dist": "5.4.394",
     "radix-ui": "latest",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-resizable-panels": "3.0.6",
     "react-router": "7.9.6",
+    "sonner": "2.0.7",
     "tailwind-merge": "3.4.0"
   },
   "devDependencies": {

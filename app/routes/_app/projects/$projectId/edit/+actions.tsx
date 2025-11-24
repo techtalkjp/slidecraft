@@ -1,4 +1,5 @@
 import { loadSlides, saveSlides } from '~/lib/slides-repository.client'
+import { deleteFile } from '~/lib/storage.client'
 import type { Slide } from '~/lib/types'
 import type { Route } from './+types/index'
 
@@ -26,6 +27,10 @@ export async function clientAction({
 
   if (_action === 'resetToOriginal') {
     return await resetToOriginalAction(formData, projectId)
+  }
+
+  if (_action === 'deleteCandidate') {
+    return await deleteCandidateAction(formData, projectId)
   }
 
   throw new Response('Invalid action', { status: 400 })
@@ -117,6 +122,82 @@ async function resetToOriginalAction(formData: FormData, projectId: string) {
     return {
       error:
         error instanceof Error ? error.message : '元に戻す処理に失敗しました',
+    }
+  }
+}
+
+/**
+ * 候補画像削除処理
+ *
+ * 生成された候補画像を削除する。
+ * 削除対象が現在適用中の場合はオリジナルに戻してから削除する。
+ */
+async function deleteCandidateAction(formData: FormData, projectId: string) {
+  try {
+    const slideId = formData.get('slideId') as string
+    const generatedId = formData.get('generatedId') as string
+
+    if (!generatedId) {
+      return { error: '削除する候補が指定されていません' }
+    }
+
+    // スライドデータを取得
+    const slides = await loadSlides(projectId)
+    const slide = slides.find((s) => s.id === slideId)
+
+    if (!slide) {
+      return { error: 'スライドが見つかりません' }
+    }
+
+    // 候補が存在するか確認
+    const candidateIndex = slide.generatedCandidates.findIndex(
+      (c) => c.id === generatedId,
+    )
+    if (candidateIndex === -1) {
+      return { error: '削除対象の候補が見つかりません' }
+    }
+
+    // 候補配列から削除
+    const updatedCandidates = slide.generatedCandidates.filter(
+      (c) => c.id !== generatedId,
+    )
+
+    // 削除対象が現在適用中の場合はオリジナルに戻す
+    const updatedSlide: Slide = {
+      ...slide,
+      generatedCandidates: updatedCandidates,
+      currentGeneratedId:
+        slide.currentGeneratedId === generatedId
+          ? undefined
+          : slide.currentGeneratedId,
+    }
+
+    const updatedSlides = slides.map((s) =>
+      s.id === slideId ? updatedSlide : s,
+    )
+
+    // OPFSに保存
+    await saveSlides(projectId, updatedSlides)
+
+    // 画像ファイルを削除
+    const imagePath = `projects/${projectId}/images/${slideId}/generated/${generatedId}.png`
+    try {
+      await deleteFile(imagePath)
+    } catch (error) {
+      console.warn('画像ファイルの削除に失敗しました:', error)
+      // 画像ファイルの削除に失敗してもメタデータは削除済みなので続行
+    }
+
+    return {
+      success: true,
+      slideId,
+      deletedId: generatedId,
+    }
+  } catch (error) {
+    console.error('候補削除エラー:', error)
+    return {
+      error:
+        error instanceof Error ? error.message : '候補の削除に失敗しました',
     }
   }
 }

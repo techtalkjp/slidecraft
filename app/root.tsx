@@ -1,3 +1,4 @@
+import { ThemeProvider } from 'next-themes'
 import { useEffect } from 'react'
 import {
   isRouteErrorResponse,
@@ -11,6 +12,7 @@ import {
 
 import type { Route } from './+types/root'
 import './app.css'
+import { Toaster } from './components/ui/sonner'
 import { trackPageView, trackRepeatUser } from './lib/analytics'
 
 export const links: Route.LinksFunction = () => [
@@ -97,7 +99,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
         />
       </head>
       <body>
-        {children}
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <Toaster />
+          {children}
+        </ThemeProvider>
         <ScrollRestoration
           getKey={(location) => {
             // パス全体をキーとして使用してスクロール位置を保持
