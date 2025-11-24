@@ -2,8 +2,8 @@ import { saveSlides } from '~/lib/slides-repository.client'
 import type { Slide } from '~/lib/types'
 import { ImageCanvas } from './components/image-canvas'
 import { PreviewHeader } from './components/preview-header'
-import { useImageZoomPan } from './hooks/useImageZoomPan'
-import { useSlideImageLoad } from './hooks/useSlideImageLoad'
+import { useImageZoomPan } from './hooks/use-image-zoom-pan'
+import { useSlideImageLoad } from './hooks/use-slide-image-load'
 
 interface MainPreviewProps {
   projectId: string

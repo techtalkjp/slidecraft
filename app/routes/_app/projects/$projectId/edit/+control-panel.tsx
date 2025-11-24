@@ -3,9 +3,9 @@ import { ApiKeyDialog } from '~/components/api-key-dialog'
 import type { Slide } from '~/lib/types'
 import { CandidateImagesGrid } from './components/candidate-images-grid'
 import { GenerationControlForm } from './components/generation-control-form'
-import { useCostEstimate } from './hooks/useCostEstimate'
-import { useSlideGeneration } from './hooks/useSlideGeneration'
-import { useSlideImages } from './hooks/useSlideImages'
+import { useCostEstimate } from './hooks/use-cost-estimate'
+import { useSlideGeneration } from './hooks/use-slide-generation'
+import { useSlideImages } from './hooks/use-slide-images'
 
 interface ControlPanelProps {
   projectId: string
