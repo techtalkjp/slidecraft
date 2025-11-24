@@ -1,6 +1,7 @@
-import { Download, Loader2 } from 'lucide-react'
+import { AlertCircle, Download, Loader2, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { Alert, AlertDescription } from '~/components/ui/alert'
 import { Button } from '~/components/ui/button'
 import { trackPdfExported } from '~/lib/analytics'
 import { downloadPdf, generatePdfFromSlides } from '~/lib/pdf-generator.client'
@@ -56,19 +57,37 @@ export function EditorActions({ projectId, slides }: EditorActionsProps) {
   }
 
   const content = (
-    <Button onClick={handleExport} disabled={isExporting} size="sm">
-      {isExporting ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          書き出し中 {exportProgress?.current}/{exportProgress?.total}
-        </>
-      ) : (
-        <>
-          <Download className="mr-2 h-4 w-4" />
-          PDF書き出し
-        </>
+    <>
+      {_error && (
+        <Alert variant="destructive" className="mb-2">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between">
+            <span>{_error}</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-auto p-1"
+              onClick={() => setError(null)}
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </AlertDescription>
+        </Alert>
       )}
-    </Button>
+      <Button onClick={handleExport} disabled={isExporting} size="sm">
+        {isExporting ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            書き出し中 {exportProgress?.current}/{exportProgress?.total}
+          </>
+        ) : (
+          <>
+            <Download className="mr-2 h-4 w-4" />
+            PDF書き出し
+          </>
+        )}
+      </Button>
+    </>
   )
 
   return container ? createPortal(content, container) : null
