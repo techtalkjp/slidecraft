@@ -18,19 +18,19 @@ export function trackEvent(
   eventName: string,
   parameters?: Record<string, unknown>,
 ) {
-  if (isAnalyticsEnabled()) {
+  if (isAnalyticsEnabled() && window.gtag) {
     if (parameters) {
-      window.gtag!('event', eventName, parameters)
+      window.gtag('event', eventName, parameters)
     } else {
-      window.gtag!('event', eventName)
+      window.gtag('event', eventName)
     }
   }
 }
 
 // Page view tracking for client-side navigation
 export function trackPageView(path: string, title?: string) {
-  if (isAnalyticsEnabled()) {
-    window.gtag!('config', 'G-MYGWWZDCP2', {
+  if (isAnalyticsEnabled() && window.gtag) {
+    window.gtag('config', 'G-MYGWWZDCP2', {
       page_path: path,
       page_title: title || document.title,
     })
