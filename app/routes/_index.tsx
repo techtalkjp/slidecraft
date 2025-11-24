@@ -208,7 +208,8 @@ export default function Index({ loaderData }: Route.ComponentProps) {
                 </Button>
               </div>
               <p className="text-xs text-slate-400">
-                ※アプリ利用料無料 / Gemini API利用料のみ（約20円/スライド）
+                ※アプリ利用料無料 / Google Gemini
+                API利用料のみ（約20円/スライド）
               </p>
             </div>
 
