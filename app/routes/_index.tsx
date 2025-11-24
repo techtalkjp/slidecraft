@@ -216,7 +216,7 @@ export default function Index({ loaderData }: Route.ComponentProps) {
                 <DialogTrigger asChild>
                   <button
                     type="button"
-                    className="group relative z-10 overflow-hidden rounded-xl bg-white transition-opacity hover:opacity-90"
+                    className="group relative z-10 overflow-hidden rounded-md bg-white shadow-lg transition-opacity hover:opacity-90"
                   >
                     <img
                       src="/slidecraft_image.png"
@@ -225,8 +225,6 @@ export default function Index({ loaderData }: Route.ComponentProps) {
                       width={1280}
                       height={800}
                     />
-                    {/* Fade out gradient at bottom */}
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-white to-transparent" />
                     {/* Click hint */}
                     <div className="absolute inset-0 flex items-center justify-center bg-slate-900/0 opacity-0 transition-all group-hover:bg-slate-900/10 group-hover:opacity-100">
                       <div className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-lg">
@@ -249,10 +247,6 @@ export default function Index({ loaderData }: Route.ComponentProps) {
                   </DialogClose>
                 </DialogContent>
               </Dialog>
-
-              {/* Decoration Background */}
-              <div className="absolute -top-10 -right-10 -z-10 h-64 w-64 rounded-full bg-slate-100 opacity-50 blur-3xl" />
-              <div className="absolute -bottom-10 -left-10 -z-10 h-64 w-64 rounded-full bg-blue-50 opacity-50 blur-3xl" />
             </div>
           </div>
         </div>
