@@ -28,7 +28,7 @@ export function meta(): Route.MetaDescriptors {
   const title =
     'SlideCraft - AIスライドをピンポイント修正 | 3枚だけ直したい時の解決策'
   const description =
-    'Nano Banana Pro、Notebook LM生成スライド、3枚だけ直したいのに全体が変わる問題を解決。気になるスライドだけピンポイント修正、他は守る。1分で完了、1スライド約20円。'
+    'Nano Banana Pro、Notebook LM生成スライド、3枚だけ直したいのに全体が変わる問題を解決。気になるスライドだけピンポイント修正。1分で完了、1スライド約20円。'
   const url = 'https://www.slidecraft.work'
 
   return [
@@ -193,7 +193,7 @@ export default function Index({ loaderData }: Route.ComponentProps) {
                 しまう問題を解決。
               </h1>
               <p className="max-w-lg text-lg leading-relaxed text-slate-500">
-                気になるスライドだけを修正。他は守る。1分で完了。
+                気になるスライドだけを修正。1分で完了。
                 <br />
                 Nano Banana Pro・Notebook LMユーザー向けの補正ツール。
               </p>
