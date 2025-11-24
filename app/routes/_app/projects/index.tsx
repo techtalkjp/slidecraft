@@ -9,6 +9,10 @@ import { loadSlideImage, loadSlides } from '~/lib/slides-repository.client'
 import type { Project } from '~/lib/types'
 import type { Route } from './+types/index'
 
+export const handle = {
+  breadcrumb: () => ({ label: 'プロジェクト', isRoot: true }),
+}
+
 export function meta(): Route.MetaDescriptors {
   return [
     { title: 'プロジェクト一覧 - SlideCraft' },

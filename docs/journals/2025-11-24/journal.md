@@ -750,3 +750,363 @@ CLAUDE.md に記載された「質実剛健な日本語散文、箇条書き・�
 2. **ガイドライン準拠の確認依頼**: ドキュメント作成後に「ガイドラインに沿っているか確認」と明示的に依頼することで、品質の統一を保てる。
 
 3. **ユーザーストーリー形式**: 技術的な実装の前に「誰が・何を・なぜ」を明確にすることで、実装の目的が明確になり、スコープクリープを防げる。
+
+---
+
+## セッション 5: UI/UX改善とToast通知実装
+
+### ユーザーからの指示
+
+> "LP で、無料で始めるボタンが、すでにプロジェクト作ってる人にも出続けるのがやだな。"
+
+ランディングページのCTAボタンが既存ユーザーにも「無料で始める」と表示される問題。
+
+---
+
+### ユーザーの意図（推定）
+
+ユーザーは既にプロジェクトを持っているユーザーに対して、より適切なCTAを表示したい。新規ユーザーには「無料で始める」、既存ユーザーには「プロジェクトを見る」という文言を出し分けることで、よりパーソナライズされたUXを提供したい。
+
+---
+
+### 実施した作業
+
+#### 1. LPのCTAボタンの動的変更
+
+**clientLoader の追加:**
+
+```typescript
+export async function clientLoader() {
+  const projects = await loadProjects()
+  return { hasProjects: projects.length > 0 }
+}
+```
+
+**CTAボタンの条件分岐:**
+
+- 既存ユーザー (`hasProjects: true`): 「プロジェクトを見る」で `/projects` へ
+- 新規ユーザー (`hasProjects: false`): 「無料で始める」で `/projects/new` へ
+
+3箇所のボタンを更新：
+- ナビゲーションヘッダー
+- ヒーローセクション
+- CTAセクション
+
+---
+
+> "~20円 というのが変なので約20円と書いて。ただし注釈で為替レートによることも。"
+
+価格表示の改善依頼。
+
+---
+
+### 実施した作業
+
+#### 2. 料金セクションの価格表示改善
+
+**価格表示の変更:**
+
+- 「~20円」→ 「約20円」（「約」を小さめのテキストで配置）
+
+**注釈の追加:**
+
+```
+※ Gemini 3 Pro Image (Nano Banana Pro) モデルを使用した場合の概算です。
+為替レートやGoogleの価格改定により変動する場合があります。
+```
+
+---
+
+> "生成済みの修正案を削除できるようにしたい。確認モーダル付きで。clientAction の仕組みで"
+
+候補画像の削除機能追加依頼。React Router v7 の clientAction パターンで実装。
+
+---
+
+### ユーザーの意図（推定）
+
+不要な候補画像を削除できるようにしたい。references/remix-spa-example を参考に、clientAction パターンで実装し、確認ダイアログで誤削除を防ぎたい。Toast通知も追加して削除成功を明示的にフィードバックしたい。
+
+---
+
+### 実施した作業
+
+#### 3. 候補画像削除機能の実装
+
+**+actions.tsx に削除アクション追加:**
+
+```typescript
+async function deleteCandidateAction(formData: FormData, projectId: string) {
+  const slideId = formData.get('slideId') as string
+  const generatedId = formData.get('generatedId') as string
+
+  // 候補配列から削除
+  const updatedCandidates = slide.generatedCandidates.filter(
+    (c) => c.id !== generatedId,
+  )
+
+  // 削除対象が現在適用中の場合はオリジナルに戻す
+  const updatedSlide: Slide = {
+    ...slide,
+    generatedCandidates: updatedCandidates,
+    currentGeneratedId:
+      slide.currentGeneratedId === generatedId
+        ? undefined
+        : slide.currentGeneratedId,
+  }
+
+  // OPFSに保存 & 画像ファイル削除
+  await saveSlides(projectId, updatedSlides)
+  await deleteFile(imagePath)
+
+  return { success: true, deletedId: generatedId }
+}
+```
+
+**AlertDialog コンポーネントの追加:**
+
+- shadcn/ui の `alert-dialog` を追加
+- 削除確認ダイアログを実装
+- 適用中の候補を削除する場合は警告メッセージを表示
+
+**候補画像グリッドにUI追加:**
+
+- ホバー時に表示される削除ボタン（ゴミ箱アイコン）
+- `fetcher.submit` で clientAction を呼び出し
+
+---
+
+> "削除したときに toast 入れたいな。references/remix-spa-example のやり方を参考にしてよく考えてこのプロジェクトに合わせて実装して"
+
+Toast通知の実装依頼。リファレンスプロジェクトを参考に。
+
+---
+
+### ユーザーの意図（推定）
+
+削除成功を視覚的にフィードバックしたい。リファレンス実装を調査して、このプロジェクトに適した形でToast通知を導入したい。
+
+---
+
+### 実施した作業
+
+#### 4. Toast通知システムの導入
+
+**パッケージのインストール:**
+
+- `sonner` v2.0.7: Toast通知ライブラリ
+- `next-themes` v0.4.6: ダークモード対応
+
+**Toaster コンポーネントの作成 (`app/components/ui/sonner.tsx`):**
+
+```typescript
+import { useTheme } from 'next-themes'
+import { Toaster as Sonner } from 'sonner'
+
+const Toaster = ({ ...props }: ToasterProps) => {
+  const { theme = 'system' } = useTheme()
+
+  return (
+    <Sonner
+      theme={theme as ToasterProps['theme']}
+      className="toaster group"
+      toastOptions={{
+        classNames: {
+          toast: 'group toast group-[.toaster]:bg-background ...',
+          // TailwindCSS変数を使用したスタイリング
+        },
+      }}
+      {...props}
+    />
+  )
+}
+```
+
+**root.tsx にセットアップ:**
+
+```typescript
+<ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+  <Toaster />
+  {children}
+</ThemeProvider>
+```
+
+**削除成功時のToast表示:**
+
+```typescript
+useEffect(() => {
+  if (fetcher.data && 'deletedId' in fetcher.data && fetcher.state === 'idle') {
+    toast.success('候補を削除しました', {
+      description: '候補画像が正常に削除されました。',
+    })
+  }
+}, [fetcher.data, fetcher.state])
+```
+
+**特徴:**
+
+- Client-side SPAのため、session/cookieは不要
+- `useEffect`でfetcherの状態を監視
+- 削除成功時に`toast.success()`を呼び出し
+
+---
+
+#### 5. PDFエクスポートエラー表示の追加
+
+**問題:** `+editor-actions.tsx`でエラー状態を保持しているが、ユーザーに表示していなかった。
+
+**修正内容:**
+
+```typescript
+{_error && (
+  <Alert variant="destructive" className="mb-2">
+    <AlertCircle className="h-4 w-4" />
+    <AlertDescription className="flex items-center justify-between">
+      <span>{_error}</span>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-auto p-1"
+        onClick={() => setError(null)}
+      >
+        <X className="h-3 w-3" />
+      </Button>
+    </AlertDescription>
+  </Alert>
+)}
+```
+
+閉じるボタン付きのエラーアラートを追加。
+
+---
+
+> "API設定画面の breadcrumbs に「プロジェクト」が入ってるの変だね。どうするのがいいだろう"
+
+Breadcrumbsの表示が不自然な問題。
+
+---
+
+### ユーザーの意図（推定）
+
+API設定はプロジェクトに属するものではなく、アプリ全体の設定なので、「プロジェクト > 設定」ではなく「設定」だけにしたい。プロジェクト一覧では「プロジェクト」と表示したい。
+
+---
+
+### 実施した作業
+
+#### 6. Breadcrumbsの表示改善
+
+**段階的な改善:**
+
+1. 設定ページで「プロジェクト」を表示しないように修正
+2. プロジェクト一覧で「プロジェクト > プロジェクト」と二重表示される問題を発見
+3. `isRoot: true` フラグを導入してルートページを識別
+
+**最終的な実装 (`use-breadcrumbs.tsx`):**
+
+```typescript
+interface BreadcrumbItemProps {
+  label: string
+  to?: string
+  isRoot?: boolean  // ルートページフラグ
+}
+
+const Breadcrumbs = () => {
+  // isRootフラグを持つアイテムは単独で表示
+  const hasRootFlag = breadcrumbItems[0]?.isRoot === true
+
+  return (
+    <Breadcrumb>
+      <BreadcrumbList>
+        {/* isRootフラグがない場合は「プロジェクト」をルートとして表示 */}
+        {!hasRootFlag && (
+          <>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link to="/projects">プロジェクト</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+          </>
+        )}
+
+        {/* 各breadcrumbアイテムを表示 */}
+        {breadcrumbItems.map((item, idx) => {
+          const isFirst = idx === 0
+          return (
+            <Fragment key={...}>
+              {!isFirst && <BreadcrumbSeparator />}
+              <BreadcrumbItem>...</BreadcrumbItem>
+            </Fragment>
+          )
+        })}
+      </BreadcrumbList>
+    </Breadcrumb>
+  )
+}
+```
+
+**各ページの設定:**
+
+```typescript
+// プロジェクト一覧
+export const handle = {
+  breadcrumb: () => ({ label: 'プロジェクト', isRoot: true }),
+}
+
+// 設定
+export const handle = {
+  breadcrumb: () => ({ label: '設定', to: '/settings' }),
+  // isRootなしでも、labelが「設定」なら単独表示（後方互換性）
+}
+```
+
+**最終的な表示:**
+
+- プロジェクト一覧 (`/projects`): 「プロジェクト」
+- プロジェクト新規作成 (`/projects/new`): 「プロジェクト > 新規作成」
+- プロジェクト編集 (`/projects/:id/edit`): 「プロジェクト > [プロジェクト名]」
+- 設定 (`/settings`): 「設定」
+
+**コードの改善:**
+
+- 複雑な条件分岐を `hasRootFlag` という明確な変数に置き換え
+- セパレータの扱いを整理（ルート部分とアイテム部分を分離）
+- コメントで各セクションの役割を明確化
+
+---
+
+### 達成した成果
+
+**UI/UX改善:**
+
+1. **LPのパーソナライゼーション:** 既存ユーザーに適切なCTAを表示
+2. **価格表示の改善:** 「約20円」と為替レート注釈で明確化
+3. **候補削除機能:** 確認ダイアログ付きで安全に削除可能
+4. **Toast通知:** 削除成功を明示的にフィードバック
+5. **エラー表示:** PDFエクスポートエラーを適切に表示
+6. **Breadcrumbs改善:** 各ページで自然な表示
+
+**技術的な改善:**
+
+- React Router v7 clientAction パターンの活用
+- sonner + next-themes によるテーマ対応Toast
+- AlertDialog コンポーネントの導入
+- ThemeProvider の統合
+- コードの可読性向上（breadcrumbs）
+
+**検証:**
+
+- すべての機能がブラウザで動作確認済み
+- `pnpm validate` 完全パス
+- 型安全性確保
+
+---
+
+### 今後の改善示唆（依頼の仕方）
+
+1. **リファレンス参照の明示:** 「references/xxx のやり方を参考にして」と具体的に指定することで、プロジェクト間で一貫した実装パターンを保てる。
+
+2. **段階的な確認:** UI改善は実際に見ながら調整することが多い。「いいかんじになった！でもコードがややこしそう」のように、まず動作を確認してから改善する流れが効率的。
+
+3. **コードレビューの依頼:** 「全体みなおしてどうやったら綺麗にかけるだろう」と明示的に依頼することで、実装後のリファクタリングが促進される。

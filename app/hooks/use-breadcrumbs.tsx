@@ -12,6 +12,7 @@ import {
 interface BreadcrumbItemProps {
   label: string
   to?: string
+  isRoot?: boolean
 }
 
 function isBreadcrumbHandle(
@@ -43,21 +44,32 @@ export const useBreadcrumbs = () => {
       return null
     }
 
+    // isRootフラグを持つアイテムは単独で表示（「プロジェクト」ルートを前置しない）
+    const hasRootFlag = breadcrumbItems[0]?.isRoot === true
+
     return (
       <Breadcrumb>
         <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link to="/projects">プロジェクト</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
+          {/* isRootフラグがない場合は「プロジェクト」をルートとして表示 */}
+          {!hasRootFlag && (
+            <>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link to="/projects">プロジェクト</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+            </>
+          )}
 
+          {/* 各breadcrumbアイテムを表示 */}
           {breadcrumbItems.map((item, idx) => {
             const isLast = idx === breadcrumbItems.length - 1
+            const isFirst = idx === 0
 
             return (
               <Fragment key={`breadcrumb-item-${idx}-${item.label}`}>
-                <BreadcrumbSeparator />
+                {!isFirst && <BreadcrumbSeparator />}
                 <BreadcrumbItem>
                   {item.to && !isLast ? (
                     <BreadcrumbLink asChild>
