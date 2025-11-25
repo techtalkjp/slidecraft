@@ -283,7 +283,7 @@ export default function Index({ loaderData }: Route.ComponentProps) {
                   全ページガチャ状態
                 </h3>
                 <p className="text-sm leading-relaxed text-slate-600">
-                  5枚目だけ直したいのに、再生成すると完璧だった他の25枚まで全部変わる。何度やっても満足いく結果にならない。
+                  3枚だけ直したいのに、再生成すると完璧だった他の27枚まで全部変わる。何度やっても満足いく結果にならない。
                 </p>
               </div>
             </Card>
