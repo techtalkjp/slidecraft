@@ -6,246 +6,135 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 SlideCraft is a React Router v7 application for editing and reconstructing AI-generated slides. Built on React Router's SSR framework with TypeScript, Vite, and TailwindCSS v4.
 
-**Tech Stack:**
+**Tech Stack:** React Router v7, shadcn/ui, TailwindCSS v4, Conform, Vercel AI SDK
 
-- **Frontend:** React Router v7, shadcn/ui, TailwindCSS v4, Conform
-- **AI:** Vercel AI SDK with nano banana pro model
-
-The `references/slidegenius` directory contains a reference implementation of a PDF slide editor with AI-powered features. This serves as inspiration for features to build into the main application.
+The `references/slidegenius` directory contains a reference implementation for inspiration.
 
 ## Development Commands
 
 ```bash
-# Install dependencies
-pnpm install
-
-# Start development server with HMR at http://localhost:5173
-pnpm dev
-
-# Validate code (format, lint, typecheck) - use this for regular checks
-pnpm validate
-
-# Type check (generates route types first, then runs tsc)
-pnpm typecheck
-
-# Build for production
-pnpm build
-
-# Run production build locally
-pnpm start
+pnpm install          # Install dependencies
+pnpm dev              # Start dev server at http://localhost:5173
+pnpm validate         # Format, lint, typecheck
+pnpm typecheck        # Type check (generates route types first)
+pnpm build            # Build for production
+pnpm start            # Run production build
 ```
 
 ## Architecture
 
 ### React Router v7 Routing
 
-Routes are defined in `app/routes.ts` using React Router's type-safe route configuration. The framework automatically generates TypeScript types in `.react-router/types/` based on the route definitions.
+Routes defined in `app/routes.ts` with auto-generated types in `.react-router/types/`.
 
-- **Route Types**: Each route gets auto-generated types via `app/+types/[route-name]` pattern
-- **Root Layout**: `app/root.tsx` provides the HTML shell with `Layout` component and `ErrorBoundary`
-- **File-based Routes**: Route components live in `app/routes/` directory
-- **Path Aliases**: `~/*` maps to `./app/*` (configured in tsconfig.json)
+- Route types: `app/+types/[route-name]` pattern
+- Root layout: `app/root.tsx` (Layout + ErrorBoundary)
+- Path alias: `~/*` → `./app/*`
 
-### Server-Side Rendering
-
-SSR is enabled by default (`react-router.config.ts` sets `ssr: true`). The build process creates:
-
-- `build/client/`: Static assets for browser
-- `build/server/`: Node.js server code
-
-The app uses `@react-router/node` for server runtime and `@react-router/serve` for production serving.
+SSR enabled by default. Build outputs: `build/client/` (static), `build/server/` (Node.js).
 
 ### Styling
 
-TailwindCSS v4 is configured via Vite plugin (`@tailwindcss/vite`). Global styles are imported in `app/root.tsx` from `app/app.css`.
+TailwindCSS v4 via Vite plugin. Global styles in `app/app.css`.
 
-### Type Generation Workflow
+### React Router Auto Routes
 
-Before running TypeScript compiler, run `react-router typegen` to generate route types. The `typecheck` script handles this automatically.
+Folder-based routing with react-router-auto-routes:
 
-### React Router Auto Routes Guidelines
+- `index.tsx`: route entry, `_layout.tsx`: layout
+- `+/`: colocated helpers (`queries.ts`, `mutations.ts`, `components/`, `hooks/`)
+- `_auth/`: pathless layout, `$param/`: dynamic segment, `$/index.tsx`: splat
+- `/api/auth/*` → `app/routes/api/auth/$/index.tsx`
+- Action dispatch: `ts-pattern` match in clientAction, logic in `+/mutations.ts`
 
-Uses react-router-auto-routes for folder-based routing.
+### Route & Component Design
 
-- `index.tsx`: route entry (loader/action/component), `_layout.tsx`: layout
-- `+/` folder for colocated helpers: `queries.ts`, `mutations.ts`, `components/`, `hooks/`
-- `_auth/`: pathless layout, `$param`: dynamic segment, `$.tsx`: splat
-- Sibling routes: folder + `index.tsx` (e.g., `$id/index.tsx` and `$id/edit.tsx`)
-- Shared code: same route → `+/`, 3+ routes → `app/features/`
-- Action dispatch: use `ts-pattern` match in clientAction, logic in `+/mutations.ts`
+**Functional cohesion** (goal): all elements work together for a single purpose.
+**Logical cohesion** (anti-pattern): elements grouped by category, not purpose.
+
+Avoid: role-based conditionals (`{role === "buyer" && ...}`), create/edit/view mode flags. Instead: split routes by role/mode, keep each route focused on one function.
+
+**Colocation & shared code:**
+
+- Same route → `+/components/`
+- Parent-child routes → `_shared/` in parent
+- 3+ routes → `app/features/` (don't extract until 3+ uses)
+
+**Route file cohesion:**
+
+- Generic utilities → `lib/`, route-specific only in route files
+- Loaders fetch only this route's data; analytics/logging → parent layouts
+- Actions: validate → save → redirect (nothing else)
+
+Test: "What does this file do?" One sentence = good cohesion.
 
 ## React Development Guidelines
 
-### File Naming Conventions
+### File Naming
 
-**React Components**: Use kebab-case for all React component files.
-
-- ✅ `slide-editor.tsx`, `pdf-upload.tsx`, `sidebar-thumbnail.tsx`
-- ❌ `SlideEditor.tsx`, `PdfUpload.tsx`, `SidebarThumbnail.tsx`
-
-This convention applies to:
-
-- Page components in `routes/`
-- Reusable UI components in `components/`
-- Feature-specific components colocated with routes (using `+` prefix)
+Use kebab-case for all component files: `slide-editor.tsx`, `pdf-upload.tsx`
 
 ### useEffect Policy
 
-`useEffect` is **only** for synchronizing with external systems: API calls, WebSocket, browser APIs, external stores, timers.
+Only for external system sync: API calls, WebSocket, browser APIs, timers.
 
-**Avoid:**
-
-- Copying props/state to local state
-- Responding to flag changes
-- Handling user actions (use event handlers)
-- Updating derived/validation state
-- One-time initialization (use `useMemo` instead)
-
-**Rules:**
-
-1. Derive values during render from props/state
-2. Handle user actions in event handlers
-3. Always add a comment explaining what external resource the effect synchronizes with
-
-### Technical Documentation (docs/)
-
-Write design docs and specifications in natural Japanese prose focused on "why" and "what". Build logical narratives that flow: problem → reasoning → approach → implications. Explain technical terms within context. Minimize bullet points, tables, and emojis. Keep the tone professional (質実剛健).
+Avoid: copying props to state, responding to flags, handling user actions (use event handlers), derived state updates. Always comment what external resource the effect syncs with.
 
 ## Documentation and Workflow
 
 ### Document Storage
 
-All documentation is stored in date-based directories under `docs/journals/`:
+All docs in `docs/journals/YYYY-MM-DD/`. Work journal: `journal.md`. File names: alphanumeric + Japanese.
 
-- **Location**: `docs/journals/YYYY-MM-DD/`
-- **Work Journal**: `docs/journals/YYYY-MM-DD/journal.md`
-- **Other documents**: Research notes, analysis reports, guides in the same directory
-- **File names**: Use alphanumeric + Japanese for clarity (e.g., `editor-mutation-action-migration-report.md`)
+### Technical Documentation
+
+Write in natural Japanese prose: problem → reasoning → approach → implications. Minimize bullet points, tables, emojis. Tone: 質実剛健.
 
 ### Work Journal (Claude Code)
 
-Record development sessions in `docs/journals/YYYY-MM-DD/journal.md`.
+Record sessions in `docs/journals/YYYY-MM-DD/journal.md`.
 
-**When to record:**
+**When:** Session end, after 2+ doc updates, after investigations, on request. Append per task.
 
-- Session end indicators ("thanks", "done for today", etc.)
-- After creating/updating 2+ documents
-- After completing technical investigations or design documents
-- On explicit user request
-- **Per task**: Append each new task instruction as received
-
-**Content structure:**
-
-- **User instruction**: Quote user's request verbatim, add 1-2 sentence context
-- **User intent (inferred)**: 2-3 sentences inferring user's goal in "wants to..." format
-- **Work done**: Prose for complex work, bullets for simple tasks
-- **Improvement suggestions**: At session end, note 2-3 ways user could have requested more efficiently (focus on request process, not AI reflection)
-
-**Update method**: Append to existing journal for same date
+**Structure:** User instruction (verbatim) → User intent (inferred, "wants to...") → Work done → Improvement suggestions (at session end)
 
 ### Decision Process
 
-For critical decisions and user-facing deliverables, human review is required before finalization.
+Human review required for critical decisions and user-facing deliverables.
 
 ## UI/UX Design Guidelines
 
-Follow the principles outlined in `docs/design-policy.md`. Prioritize **usability over visual aesthetics**. The core philosophy is that users should never feel blocked, always receive immediate feedback, and can easily recover from any state.
+Follow `docs/design-policy.md`. Prioritize usability over aesthetics. Users should never feel blocked, always get immediate feedback, and can recover from any state.
 
 ### Design Principles
 
-**Operations Should Not Block Users**
+**Non-blocking:** Background processing, cancel buttons, popovers over modals, ESC/click-outside closes dialogs.
 
-- Background processing when possible
-- Provide cancel buttons for long operations
-- Minimize modal dialogs; prefer popovers/toasts
-- ESC key and background click must close dialogs
+**Immediate feedback:** Visual response for all interactions, clear loading/success/error states, optimistic UI with rollback.
 
-**Immediate Feedback**
+**State recovery:** Back navigation, scroll position preservation (ScrollRestoration with getKey), form state persistence, confirmation for destructive actions.
 
-- Visual feedback for all interactions (clicks, inputs)
-- Clear loading, success, and error states
-- Progressive rendering to avoid layout shift
-- Optimistic UI where appropriate (with rollback handling)
+**Predictable:** Consistent patterns, specific labels ("Save" not "OK"), clear link vs button distinction.
 
-**Easy State Recovery**
+### Component Standards
 
-- Always provide back navigation
-- Preserve scroll position on navigation (use React Router's ScrollRestoration with getKey)
-- Maintain form input state across navigation
-- Confirmation or undo for destructive actions
+**Colors:** Primary `slate-700`, Accent `blue-500`, Success `emerald-500`, Warning `amber-600`, Border `slate-200`
 
-**Predictable Behavior**
+**Icons:** Lucide, outline style. Small `h-4 w-4`, Medium `h-5 w-5`, Large `h-6 w-6`
 
-- Consistent UI patterns throughout the app
-- Specific button labels ("Save", "Delete" not "OK")
-- Clear visual distinction for links vs buttons
-- Disable states are clearly distinguishable
+**Loading:** `Loader2` icon. Button: `h-4 w-4 text-blue-500`. Full page: centered `h-6 w-6`
 
-### Brand-Aligned Component Standards
+**Spacing:** 8px system (xs=4px, sm=8px, md=16px, lg=24px, xl=32px)
 
-**Colors** (from `docs/brand-guidelines.md`)
+**Buttons:** Primary `bg-slate-700`, Secondary `bg-white border-slate-200`, Accent `bg-blue-500`. Padding `px-6 py-3`, radius `rounded-md`
 
-- Primary: `#334155` (Slate Gray) - text-slate-700, bg-slate-700
-- Accent: `#3B82F6` (Blue) - text-blue-500, bg-blue-500
-- Success: `#10B981` (Green) - text-emerald-500
-- Warning: `#F59E0B` (Amber) - text-amber-600
-- Border: `#E2E8F0` (Border Gray) - border-slate-200
-
-**Loading Indicators**
-
-- Button loading: `h-4 w-4` (16px) with `text-blue-500`
-- Inline loading: `h-4 w-4 animate-spin` with context-appropriate color
-- Full page loading: centered, `h-6 w-6` (24px)
-- Use Lucide's `Loader2` icon for consistency
-
-**Icons** (Lucide Icons)
-
-- Small: `h-4 w-4` (16px) - inline with text, button icons
-- Medium: `h-5 w-5` (20px) - standalone icons
-- Large: `h-6 w-6` (24px) - feature icons, headers
-- Style: Outline (not filled)
-- Color: Match surrounding text color
-
-**Spacing** (8px system)
-
-- xs: 4px (`gap-1`, `p-1`)
-- sm: 8px (`gap-2`, `p-2`)
-- md: 16px (`gap-4`, `p-4`)
-- lg: 24px (`gap-6`, `p-6`)
-- xl: 32px (`gap-8`, `p-8`)
-
-**Buttons**
-
-- Primary: `bg-slate-700 text-white hover:bg-slate-600`
-- Secondary: `bg-white border border-slate-200 text-slate-700 hover:bg-slate-50`
-- Accent: `bg-blue-500 text-white hover:bg-blue-600`
-- Padding: `px-6 py-3` (24px horizontal, 12px vertical)
-- Border radius: `rounded-md` (6px)
-
-**Error Handling**
-
-- Implement comprehensive error boundaries with `RouteErrorBoundary`
-- Display user-friendly error messages
-- Provide recovery actions (retry, go back)
-- Log errors for debugging but don't expose technical details to users
-
-**Navigation**
-
-- Breadcrumb navigation always available
-- Use React Router's `ScrollRestoration` with custom `getKey` for scroll position management
-- Preserve list position when returning from detail views
+**Errors:** RouteErrorBoundary, user-friendly messages, recovery actions (retry, go back)
 
 ### Implementation Checklist
 
-Before shipping a new feature, verify:
-
-- [ ] Operations don't block users unnecessarily
-- [ ] Long operations have cancel buttons
-- [ ] All interactions provide immediate visual feedback
-- [ ] Loading states use brand colors (blue-500) and correct sizes
-- [ ] Error boundaries catch and display errors appropriately
-- [ ] Navigation preserves scroll position and form state
-- [ ] Buttons have specific, predictive labels
-- [ ] Icons use Lucide with consistent sizes
-- [ ] Spacing follows 8px system
+- [ ] Non-blocking operations with cancel buttons
+- [ ] Immediate visual feedback, brand-colored loading states
+- [ ] Error boundaries with recovery actions
+- [ ] Scroll/form state preserved on navigation
+- [ ] Specific button labels, consistent icon sizes, 8px spacing
 - [ ] Destructive actions have confirmation or undo

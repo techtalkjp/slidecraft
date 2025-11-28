@@ -1,0 +1,73 @@
+# SlideCraft認証基盤設計
+
+## 背景と目的
+
+SlideCraftは現在クライアントサイドで完結しており、すべてのデータがOPFSに保存されている。近い将来、PPTXファイルをOneDriveに保存する機能やGoogle Slidesへのエクスポート機能を実装したい。これらの機能にはMicrosoftやGoogleのOAuth認証が必須となる。
+
+認証基盤がない状態でOAuth連携を追加すると、認証とエクスポート機能を同時に設計・実装することになり複雑になる。そこでbetter-authのAnonymousプラグインを先行導入し、匿名セッション管理を開始しておく。ユーザーの操作体験は変わらないが、OneDrive/Google Drive連携を追加する際にはソーシャルログインするだけで匿名セッションから認証セッションにアップグレードできる。OPFSのデータはそのまま維持し、クラウドへのエクスポートはコピーとして扱う。
+
+## 技術構成
+
+データベースにはTursoを採用する。libSQLベースでSQLite互換のため、ローカル開発ではSQLiteファイルをそのまま使用でき、本番ではTursoのエッジネットワークに接続できる。
+
+スキーマ管理にはPrisma 7を使用し、クエリにはKyselyを使用する。Prisma 7ではドライバーアダプターが必須となり、ローカル開発では@prisma/adapter-better-sqlite3、本番環境では@prisma/adapter-libsqlを使用する。設定はprisma.config.tsで行い、schema.prismaのdatasourceブロックからurlを削除する。ジェネレーターもprisma-client-jsからprisma-clientに変更され、出力先はgenerated/prismaとなる。
+
+Prisma ClientをランタイムのクエリにそのままSQLiteで使うと、DateTime型が独自フォーマットで保存されTablePlusなどで読みにくくなる問題がある。Kyselyを使うことでタイムスタンプをISO 8601形式で保存でき、外部ツールとの相互運用性を維持できる。prisma-kyselyによりPrismaスキーマからKyselyの型定義を自動生成できるため、Prismaの直感的なスキーマ定義とKyselyの型安全なクエリを両立できる。
+
+Kyselyには複数のプラグインを適用する。CamelCasePluginはデータベースのカラム名をsnake_caseで定義しつつTypeScriptコードではcamelCaseで扱えるようにする。TablePlusなどの外部ツールでクエリする際にsnake_caseのほうが読みやすく、SQLの慣習にも沿う。DeduplicateJoinsPluginは複雑なクエリで同じテーブルへの重複JOINを自動で除去する。ParseJSONResultsPluginはJSON型カラムの結果を自動でパースする。HandleEmptyInListsPluginは空配列をIN句に渡した場合のエラーを防ぐ。prisma-kyselyのcamelCaseオプションを有効にすることで、生成される型定義もcamelCaseになる。
+
+認証にはbetter-authを採用する。better-authはPrismaアダプターを提供しており、Prisma Clientを渡すことで認証関連のデータベース操作を行う。アプリケーション固有のクエリにはKyselyを使用し、認証関連はbetter-authに任せる分離構成とする。
+
+## スキーマ
+
+better-auth CLIを使用してスキーマを生成する。npx @better-auth/cli generateを実行すると、better-auth設定ファイルを読み取り、有効なプラグインに応じた必要なテーブル定義をPrismaスキーマとして出力する。手動でスキーマを記述する必要がなく、プラグイン追加時も同じコマンドでスキーマを更新できる。
+
+基本テーブルはUser、Session、Account、Verificationの4つである。Anonymousプラグインを有効にするとUserテーブルにisAnonymousフラグが自動で追加される。Sessionテーブルはユーザーのログイン状態を管理し、Accountテーブルは外部認証プロバイダーとの連携情報を保持する。Verificationテーブルはメール認証などの検証トークンを管理する。
+
+PrismaスキーマにはKysely型生成のためのジェネレーターを追加する。prisma generate実行時にKysely用の型定義がapp/lib/db/types.tsに自動生成される。データソースはsqliteを指定することで、ローカル開発ではSQLiteファイル、本番ではTurso（libSQL）に接続できる。
+
+## better-auth設定
+
+サーバー側ではPrismaアダプターを使用してbetter-authを初期化する。prismaAdapter関数にPrisma Clientインスタンスとproviderオプション（sqlite）を渡す。今回はAnonymousプラグインのみ有効にする。環境変数DATABASE_URLには開発環境ではfile:./local.db、本番環境ではTursoのURLを指定する。Prismaはlibsql://スキーマを直接サポートしていないため、本番環境では@prisma/adapter-libsqlを使用してTursoに接続する。環境変数BETTER_AUTH_SECRETにはセッショントークン署名用の十分に長いランダム文字列を設定する。
+
+クライアント側ではcreateAuthClientを使用して認証クライアントを作成する。anonymousClientプラグインを追加することで、匿名認証の機能が利用可能になる。
+
+## React Router v7との統合
+
+better-authはすべての認証フローを単一のエンドポイントで処理する設計である。React Router v7ではリソースルートとしてapp/routes/api/auth/$/index.tsを作成し、loaderとactionの両方でauth.handler(request)に委譲する。このsplatルートにより/api/auth以下のすべてのパス（/api/auth/sign-in、/api/auth/callbackなど）がbetter-authによって処理される。
+
+セッション情報はサーバー側のloaderでauth.api.getSession({ headers: request.headers })を呼び出して取得する。戻り値にはuserオブジェクトとsessionオブジェクトが含まれる。認証が必要なルートではセッションの存在を確認し、未認証の場合はリダイレクトまたはエラーを返す。
+
+セッショントークンはHTTP-only Cookieとして管理される。better-authがCookieの設定と検証を内部で処理するため、明示的なCookie操作は不要である。CSRF対策もbetter-authが内部で処理する。
+
+クライアント側ではauthClient.useSession()フックでセッション状態を取得できる。このフックはReact Queryベースで実装されており、セッションの自動更新と状態管理を行う。匿名サインインはauthClient.signIn.anonymous()で実行し、戻り値でセッション情報を受け取れる。
+
+## 実装手順
+
+依存関係としてbetter-auth、@libsql/client、kysely、@libsql/kysely-libsqlを本番依存に、prisma、prisma-kysely、@prisma/adapter-better-sqlite3、better-sqlite3、@types/better-sqlite3を開発依存に追加する。
+
+Prismaを初期化する。schema.prismaではdatasource providerにsqliteを指定するが、urlは記載しない。prisma.config.tsを作成し、ローカル開発用に@prisma/adapter-better-sqlite3を設定する。ジェネレーターはprisma-clientを指定し、出力先をgenerated/prismaとする。prisma-kyselyジェネレーター設定も追加し、camelCaseオプションを有効にする。
+
+better-auth設定ファイルを作成する。この時点ではPrisma Clientがまだ生成されていないため、データベース設定は仮の状態で構わない。サーバー側設定にAnonymousプラグインを追加し、クライアント側設定にanonymousClientプラグインを追加する。
+
+npx @better-auth/cli generateを実行してPrismaスキーマにテーブル定義を追加する。CLIがbetter-auth設定を読み取り、User、Session、Account、VerificationテーブルとisAnonymousフラグを含むスキーマを生成する。
+
+prisma migrate devでローカルデータベースにマイグレーションを適用し、prisma generateでPrisma ClientとKysely型を生成する。Prisma 7ではprisma.config.tsの設定に従い、アダプター経由でデータベースに接続する。
+
+データベース接続モジュールを作成する。libSQLクライアントを初期化し、LibsqlDialectを通じてKyselyインスタンスを構築する。Kyselyプラグインを適用する。Prisma Clientの初期化時にはアダプターインスタンスを渡す必要がある。
+
+better-auth設定を完成させる。アダプター付きで初期化したPrisma Clientをインポートし、prismaAdapterに渡す。
+
+認証APIルートを追加する。app/routes/api/auth/$/index.tsにcatch-allルートを作成し、better-authのハンドラーに委譲する。
+
+アプリ起動時に匿名サインインを実行する。既存セッションがなければauthClient.signIn.anonymous()を呼び出す。
+
+## ローカル開発
+
+環境変数DATABASE_URL=file:./local.dbを設定すればSQLiteファイルで動作する。Tursoへの接続は不要である。
+
+マイグレーションはprisma migrate devでローカルに適用し、本番デプロイ時は生成されたSQLをTurso CLIで適用する。TursoはHTTP接続のためPrisma Migrateを直接実行できないという制約があるが、このワークフローで対応できる。
+
+## 将来の拡張
+
+ソーシャル認証を追加する際は、better-authのsocialProvidersにGoogleやMicrosoftを設定し、onLinkAccountコールバックで匿名ユーザーとの紐付けを処理する。課金機能はStripeと連携し、認証済みユーザーに対してプラン情報を管理する。これらは本設計の範囲外とし、必要になった時点で別途設計する。
