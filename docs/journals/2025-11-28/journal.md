@@ -137,3 +137,30 @@ Vercel CLI で環境変数（DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL, 
 
 - PR 作成・マージ
 - 本番デプロイ後の動作確認
+
+---
+
+## 認証基盤レビュー対応
+
+### ユーザー指示
+
+スキーマの `isAnonymous` が nullable になっている問題の指摘を受けて修正。DB リセット。マイグレーションスクリプトを zx で書き直し。
+
+### ユーザー意図（推測）
+
+レビュー指摘に対応して PR をマージ可能な状態にしたい。マイグレーションスクリプトのコード品質を上げたい。
+
+### 作業内容
+
+Prisma スキーマの `isAnonymous` を `Boolean?` から `Boolean` に修正した。better-auth の Anonymous プラグインは匿名ユーザー作成時にランダムメールを生成するため、email/name の nullable 化は不要と判断した。
+
+ローカル SQLite と Turso の両方のデータベースをリセットし、マイグレーションを再作成した（`20251128151352_init`）。
+
+マイグレーションスクリプト `scripts/migrate-turso.ts` を zx で書き直した。turso CLI のログイン状態を使用することでトークン管理が不要になった。レビュー対策として DB 名の環境変数化（`TURSO_DB_NAME`）と migrationName のバリデーション（SQLインジェクション対策）を追加した。
+
+### 成果物
+
+- `prisma/schema.prisma` - `isAnonymous` を non-nullable に修正
+- `prisma/migrations/20251128151352_init/` - マイグレーション再作成
+- `scripts/migrate-turso.ts` - zx で書き直し、セキュリティ強化
+- `package.json` - zx 追加
