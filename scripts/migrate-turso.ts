@@ -29,6 +29,14 @@ export function validateMigrationName(name: string): void {
   }
 }
 
+/**
+ * SQL 文字列リテラル用のエスケープ
+ * シングルクォートを2重にしてエスケープ
+ */
+function escapeSqlString(value: string): string {
+  return value.replace(/'/g, "''")
+}
+
 async function tursoShell(sql: string): Promise<string> {
   try {
     const result = await $`turso db shell ${DB_NAME} ${sql}`
@@ -166,8 +174,10 @@ async function applyMigration(migrationName: string): Promise<boolean> {
   validateMigrationName(migrationName)
 
   const id = crypto.randomUUID()
+  const escapedId = escapeSqlString(id)
+  const escapedMigrationName = escapeSqlString(migrationName)
   await tursoShell(
-    `INSERT INTO _prisma_migrations (id, migration_name) VALUES ('${id}', '${migrationName}')`,
+    `INSERT INTO _prisma_migrations (id, migration_name) VALUES ('${escapedId}', '${escapedMigrationName}')`,
   )
 
   console.log(`✅ Applied: ${migrationName}`)
