@@ -13,8 +13,13 @@ export async function loader({ request }: Route.LoaderArgs) {
   // Vercel Cron からの呼び出しを検証
   const authHeader = request.headers.get('authorization')
   const cronSecret = process.env.CRON_SECRET
+  const isProduction = process.env.NODE_ENV === 'production'
 
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (isProduction) {
+    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+      return new Response('Unauthorized', { status: 401 })
+    }
+  } else if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
     return new Response('Unauthorized', { status: 401 })
   }
 
