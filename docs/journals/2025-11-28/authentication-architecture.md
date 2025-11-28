@@ -56,7 +56,7 @@ better-auth設定を完成させる。アダプター付きで初期化したPri
 
 認証APIルートを追加する。app/routes/api/auth/$/index.tsxにcatch-allルートを作成し、better-authのハンドラーに委譲する。
 
-React Router v7のmiddlewareで匿名セッションを自動作成する。react-router.config.tsでfuture.v8_middlewareを有効にし、_app/_layout.tsxでmiddlewareを実装する。セッションがなければauth.api.signInAnonymousを呼び出し、Set-Cookieヘッダーをレスポンスに追加する。sessionContextを通じて子ルートからセッション情報にアクセスできる。
+React Router v7のmiddlewareで匿名セッションを自動作成する。react-router.config.tsでfuture.v8_middlewareを有効にし、\_app/\_layout.tsxでmiddlewareを実装する。セッションがなければauth.api.signInAnonymousを呼び出し、Set-Cookieヘッダーをレスポンスに追加する。sessionContextを通じて子ルートからセッション情報にアクセスできる。
 
 ## ローカル開発
 

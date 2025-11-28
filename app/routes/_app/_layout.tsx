@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router'
-import type { Route } from './+types/_layout'
 import { AppSidebar } from '~/components/layout/app-sidebar'
 import { Main } from '~/components/layout/main'
 import { Separator } from '~/components/ui/separator'
 import { SidebarProvider, SidebarTrigger } from '~/components/ui/sidebar'
 import { useBreadcrumbs } from '~/hooks/use-breadcrumbs'
-import { cn } from '~/lib/utils'
 import { auth } from '~/lib/auth/auth'
 import { sessionContext } from '~/lib/auth/session.context'
+import { cn } from '~/lib/utils'
+import type { Route } from './+types/_layout'
 
 /**
  * _app 配下のルートにアクセスしたときに匿名セッションを自動作成する middleware

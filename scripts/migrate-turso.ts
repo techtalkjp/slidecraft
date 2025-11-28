@@ -19,6 +19,16 @@ $.quiet = true
 const DB_NAME = process.env.TURSO_DB_NAME ?? 'slidecraft'
 const MIGRATIONS_DIR = join(process.cwd(), 'prisma/migrations')
 
+/**
+ * マイグレーション名のバリデーション
+ * SQLインジェクション対策として、英数字・アンダースコア・ハイフンのみ許可
+ */
+export function validateMigrationName(name: string): void {
+  if (!/^[\w-]+$/.test(name)) {
+    throw new Error(`Invalid migration name: ${name}`)
+  }
+}
+
 async function tursoShell(sql: string): Promise<string> {
   try {
     const result = await $`turso db shell ${DB_NAME} ${sql}`
@@ -110,7 +120,9 @@ async function ensureMigrationsTable(): Promise<void> {
 }
 
 async function getAppliedMigrations(): Promise<Set<string>> {
-  const result = await tursoShell('SELECT migration_name FROM _prisma_migrations')
+  const result = await tursoShell(
+    'SELECT migration_name FROM _prisma_migrations',
+  )
   const migrations = new Set<string>()
   for (const line of result.split('\n')) {
     const trimmed = line.trim()
@@ -151,9 +163,7 @@ async function applyMigration(migrationName: string): Promise<boolean> {
   }
 
   // migrationName はファイルシステムから取得しているが、念のためバリデーション
-  if (!/^[\w-]+$/.test(migrationName)) {
-    throw new Error(`Invalid migration name: ${migrationName}`)
-  }
+  validateMigrationName(migrationName)
 
   const id = crypto.randomUUID()
   await tursoShell(
