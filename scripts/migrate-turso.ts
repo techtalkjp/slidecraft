@@ -9,7 +9,7 @@
  *   pnpm db:migrate:turso
  */
 
-import { type LibsqlError, createClient } from '@libsql/client'
+import { createClient } from '@libsql/client'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -151,10 +151,11 @@ async function applyMigration(migrationName: string) {
     } catch (error) {
       // Check for SQLite "already exists" errors using LibsqlError
       // SQLITE_ERROR (code 1) is returned for "table already exists", "index already exists", etc.
-      const libsqlError = error as LibsqlError
       if (
-        libsqlError.code === 'SQLITE_ERROR' &&
-        libsqlError.message?.includes('already exists')
+        error instanceof Error &&
+        'code' in error &&
+        error.code === 'SQLITE_ERROR' &&
+        error.message?.includes('already exists')
       ) {
         console.log(`   ⏭️  Skipped (already exists)`)
         continue
