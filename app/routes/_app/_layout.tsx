@@ -1,11 +1,58 @@
 import { useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router'
+import type { Route } from './+types/_layout'
 import { AppSidebar } from '~/components/layout/app-sidebar'
 import { Main } from '~/components/layout/main'
 import { Separator } from '~/components/ui/separator'
 import { SidebarProvider, SidebarTrigger } from '~/components/ui/sidebar'
 import { useBreadcrumbs } from '~/hooks/use-breadcrumbs'
 import { cn } from '~/lib/utils'
+import { auth } from '~/lib/auth/auth'
+import { sessionContext } from '~/lib/auth/session.context'
+
+/**
+ * _app 配下のルートにアクセスしたときに匿名セッションを自動作成する middleware
+ * セッションがなければ匿名サインインし、context に session を設定
+ * Response に Set-Cookie を追加してクライアントにセッションを渡す
+ */
+export const middleware: Route.MiddlewareFunction[] = [
+  async ({ request, context }, next) => {
+    // 既存セッションを確認
+    let session = await auth.api.getSession({ headers: request.headers })
+    let setCookieHeader: string | null = null
+
+    // セッションがなければ匿名サインイン
+    if (!session) {
+      const signInResponse = await auth.api.signInAnonymous({
+        headers: request.headers,
+        asResponse: true,
+      })
+      if (signInResponse) {
+        setCookieHeader = signInResponse.headers.get('set-cookie')
+        // 新しい cookie を使ってセッションを再取得
+        const newHeaders = new Headers(request.headers)
+        if (setCookieHeader) {
+          // Set-Cookie から cookie 値を抽出して Cookie ヘッダーに設定
+          const cookieValue = setCookieHeader.split(';')[0]
+          newHeaders.set('cookie', cookieValue)
+        }
+        session = await auth.api.getSession({ headers: newHeaders })
+      }
+    }
+
+    context.set(sessionContext, session)
+
+    // 次の処理を実行
+    const response = await next()
+
+    // Set-Cookie があれば Response に追加
+    if (setCookieHeader && response) {
+      response.headers.append('set-cookie', setCookieHeader)
+    }
+
+    return response
+  },
+]
 
 function AppLayoutContent({ isEditorPage }: { isEditorPage: boolean }) {
   const { Breadcrumbs } = useBreadcrumbs()

@@ -32,6 +32,56 @@ Prisma 7 の仕様変更に対応するため設計書を更新した。Prisma 7
 - [docs/journals/2025-11-28/authentication-sow.md](authentication-sow.md) - 作業範囲記述書
 - [CLAUDE.md](../../../CLAUDE.md) - ガイドライン更新（フォルダベース規約の明確化、Route & Component Design 追加）
 
+---
+
+## SlideCraft 認証基盤実装
+
+### ユーザー指示
+
+「ok 実装しよう！」から始まり、以下の要件が追加された。
+
+- カラム名は snake_case
+- generated は app 下に出したい（`~/` で import できるように）
+- ESM モジュール形式
+- ローカル DB は `./data/local.db`
+- Turso データベースを作成してマイグレーション適用
+- pnpm run で実行できるスクリプト
+
+途中で Kysely アダプターの検討もあったが、ISO 8601 形式で問題ないとの判断で Prisma のみの構成に決定。
+
+### ユーザー意図（推測）
+
+設計書どおりに認証基盤を実装したい。ただし、実際の開発で使いやすいように snake_case のカラム名（TablePlus などでの可読性）、app 下への出力（インポートパスの統一）、適切なデータベースファイル配置を求めている。
+
+### 作業内容
+
+better-auth と Prisma 7 を使った認証基盤を実装した。
+
+Prisma スキーマを作成し、snake_case カラム名を `@map` アノテーションで実現した。ジェネレーター設定で `app/generated/prisma` への出力と ESM 形式を指定した。
+
+PrismaClient は `@prisma/adapter-libsql` を使用し、環境変数がない場合は `file:./data/local.db` にフォールバックする構成とした。これにより開発時は設定不要でローカル SQLite を使用できる。
+
+better-auth の設定では Prisma アダプターを使用し、フィールドマッピングで snake_case との対応を定義した。Anonymous プラグインも `is_anonymous` カラムにマッピングした。
+
+API ルートは `app/routes/api/auth/$/index.tsx` に splat ルートとして実装し、loader と action の両方で better-auth のハンドラーに委譲する構成とした。
+
+Turso データベース `slidecraft` を作成し、マイグレーション SQL を適用した。`db:migrate:turso` スクリプトで最新のマイグレーションを Turso に適用できるようにした。
+
+環境変数は `.env`（ローカル開発用テンプレート）、`.env.production`（本番用）、`.env.example`（リポジトリにコミットするテンプレート）の3ファイル構成とした。
+
+設計書と SOW から Kysely 関連の記述を削除し、Prisma のみの構成に更新した。
+
+### 成果物
+
+- [prisma/schema.prisma](../../../prisma/schema.prisma) - Prisma スキーマ（snake_case、ESM）
+- [app/lib/db/prisma.ts](../../../app/lib/db/prisma.ts) - PrismaClient（libsql アダプター）
+- [app/lib/auth/auth.ts](../../../app/lib/auth/auth.ts) - better-auth サーバー設定
+- [app/lib/auth/auth.client.ts](../../../app/lib/auth/auth.client.ts) - クライアント設定
+- [app/routes/api/auth/$/index.tsx](../../../app/routes/api/auth/$/index.tsx) - API splat ルート
+- [prisma.config.ts](../../../prisma.config.ts) - Prisma 7 設定
+- [.env.example](../../../.env.example) - 環境変数テンプレート
+- package.json - db スクリプト追加
+
 ### 改善提案
 
 1. 設計の方向性が最初から明確だと効率がよい。「OneDrive/Google 連携のために OAuth 基盤が必要、まず匿名認証から」と最初に伝えてもらえれば、不要な設計（データ移行など）を含めずに済んだ。
@@ -41,3 +91,49 @@ Prisma 7 の仕様変更に対応するため設計書を更新した。Prisma 7
 3. プロジェクトの既存規約（react-router-auto-routes のフォルダベース）は設計開始時に確認すべきだった。
 
 4. Prisma 7 の破壊的変更は設計開始前に確認すべきだった。フレームワークのメジャーバージョンアップがある場合は事前に伝えてもらえると手戻りを防げる。
+
+5. Kysely アダプターの検討は ISO 形式で問題ないと最初に確認できていれば不要だった。DateTime 形式の要件は早めに確認すべき。
+
+---
+
+## 認証基盤デプロイ準備
+
+### ユーザー指示
+
+「Prisma の camelCase 修正」「React Router middleware で自動セッション作成」「Vercel Cron でセッションクリーンアップ」「Turso マイグレーション」「Vercel 環境変数設定」「デプロイ手順ドキュメント」
+
+### ユーザー意図（推測）
+
+認証基盤を本番環境にデプロイしたい。マイグレーションの仕組みを整え、環境変数を設定し、PR マージでデプロイできる状態にしたい。スライドとの紐付けは不要で、認証基盤だけ先に入れておく。
+
+### 作業内容
+
+Prisma スキーマのフィールド名を snake_case から camelCase に変更した。`emailVerified`、`createdAt`、`expiresAt`、`isAnonymous` などに修正し、`@map` でDBカラム名を snake_case に維持した。
+
+React Router v7 の middleware を有効化（`react-router.config.ts` で `future.v8_middleware: true`）し、`_app/_layout.tsx` で匿名セッションを自動作成する middleware を実装した。セッションがなければ `signInAnonymous` を呼び、Set-Cookie ヘッダーをレスポンスに追加する。
+
+Vercel Cron Job 用の API（`/api/cron/cleanup-sessions`）を実装した。毎日 AM 3:00 (UTC) に期限切れセッションと孤立した匿名ユーザーを削除する。`vercel.json` に cron 設定を追加。
+
+Prisma CLI が libSQL を直接サポートしていないため、カスタムのマイグレーションスクリプト `scripts/migrate-turso.ts` を作成した。`prisma/migrations/` 内のマイグレーションを読み取り、`@libsql/client` で Turso に適用する。`_prisma_migrations` テーブルで適用済みを管理し、冪等性を確保。
+
+npm スクリプトを整理した。`db:*` はローカル（Prisma + SQLite）、`turso:*` は本番（Turso）と区別。
+
+Vercel CLI で環境変数（DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL, CRON_SECRET）を設定した。
+
+`docs/database-migration.md` にマイグレーション手順をまとめた。
+
+### 成果物
+
+- `prisma/schema.prisma` - camelCase フィールド名に修正
+- `react-router.config.ts` - middleware 有効化
+- `app/routes/_app/_layout.tsx` - 自動セッション作成 middleware
+- `app/lib/auth/session.context.ts` - セッション context
+- `app/routes/api/cron/cleanup-sessions/index.tsx` - セッションクリーンアップ API
+- `vercel.json` - Cron Job 設定
+- `scripts/migrate-turso.ts` - Turso マイグレーションスクリプト
+- `docs/database-migration.md` - マイグレーション手順
+
+### 次のステップ
+
+- PR 作成・マージ
+- 本番デプロイ後の動作確認
