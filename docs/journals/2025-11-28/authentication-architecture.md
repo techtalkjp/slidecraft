@@ -1,0 +1,75 @@
+# SlideCraft認証基盤設計
+
+## 背景と目的
+
+SlideCraftは現在クライアントサイドで完結しており、すべてのデータがOPFSに保存されている。近い将来、PPTXファイルをOneDriveに保存する機能やGoogle Slidesへのエクスポート機能を実装したい。これらの機能にはMicrosoftやGoogleのOAuth認証が必須となる。
+
+認証基盤がない状態でOAuth連携を追加すると、認証とエクスポート機能を同時に設計・実装することになり複雑になる。そこでbetter-authのAnonymousプラグインを先行導入し、匿名セッション管理を開始しておく。ユーザーの操作体験は変わらないが、OneDrive/Google Drive連携を追加する際にはソーシャルログインするだけで匿名セッションから認証セッションにアップグレードできる。OPFSのデータはそのまま維持し、クラウドへのエクスポートはコピーとして扱う。
+
+## 技術構成
+
+データベースにはTursoを採用する。libSQLベースでSQLite互換のため、ローカル開発ではSQLiteファイルをそのまま使用でき、本番ではTursoのエッジネットワークに接続できる。
+
+スキーマ管理とクエリにはPrisma 7を使用する。Prisma 7ではドライバーアダプターが必須となり、@prisma/adapter-libsqlを使用してTurso/libSQLに接続する。設定はprisma.config.tsで行い、schema.prismaのdatasourceブロックからurlを削除する。ジェネレーターはprisma-clientを指定し、出力先はapp/generated/prismaとする。
+
+認証にはbetter-authを採用する。better-authはPrismaアダプターを提供しており、Prisma Clientを渡すことで認証関連のデータベース操作を行う。
+
+## スキーマ
+
+better-auth CLIを使用してスキーマを生成する。npx @better-auth/cli generateを実行すると、better-auth設定ファイルを読み取り、有効なプラグインに応じた必要なテーブル定義をPrismaスキーマとして出力する。手動でスキーマを記述する必要がなく、プラグイン追加時も同じコマンドでスキーマを更新できる。
+
+基本テーブルはUser、Session、Account、Verificationの4つである。Anonymousプラグインを有効にするとUserテーブルにisAnonymousフラグが自動で追加される。Sessionテーブルはユーザーのログイン状態を管理し、Accountテーブルは外部認証プロバイダーとの連携情報を保持する。Verificationテーブルはメール認証などの検証トークンを管理する。
+
+カラム名はsnake_caseとする。Prismaのモデルフィールドには@mapアノテーションでsnake_caseのカラム名を指定し、better-authの設定でもfieldsオプションでマッピングを行う。これによりTablePlusなどの外部ツールでクエリする際に読みやすくなる。
+
+## better-auth設定
+
+サーバー側ではPrismaアダプターを使用してbetter-authを初期化する。prismaAdapter関数にPrisma Clientインスタンスとproviderオプション（sqlite）を渡す。今回はAnonymousプラグインのみ有効にする。環境変数DATABASE_URLには開発環境ではfile:./data/local.db、本番環境ではTursoのURLを指定する。環境変数BETTER_AUTH_SECRETにはセッショントークン署名用の十分に長いランダム文字列を設定する。
+
+クライアント側ではcreateAuthClientを使用して認証クライアントを作成する。anonymousClientプラグインを追加することで、匿名認証の機能が利用可能になる。
+
+## React Router v7との統合
+
+better-authはすべての認証フローを単一のエンドポイントで処理する設計である。React Router v7ではリソースルートとしてapp/routes/api/auth/$/index.tsxを作成し、loaderとactionの両方でauth.handler(request)に委譲する。このsplatルートにより/api/auth以下のすべてのパス（/api/auth/sign-in、/api/auth/callbackなど）がbetter-authによって処理される。
+
+セッション情報はサーバー側のloaderでauth.api.getSession({ headers: request.headers })を呼び出して取得する。戻り値にはuserオブジェクトとsessionオブジェクトが含まれる。認証が必要なルートではセッションの存在を確認し、未認証の場合はリダイレクトまたはエラーを返す。
+
+セッショントークンはHTTP-only Cookieとして管理される。better-authがCookieの設定と検証を内部で処理するため、明示的なCookie操作は不要である。CSRF対策もbetter-authが内部で処理する。
+
+クライアント側ではauthClient.useSession()フックでセッション状態を取得できる。このフックはReact Queryベースで実装されており、セッションの自動更新と状態管理を行う。匿名サインインはauthClient.signIn.anonymous()で実行し、戻り値でセッション情報を受け取れる。
+
+## 実装手順
+
+依存関係としてbetter-auth、@libsql/clientを本番依存に、prisma、@prisma/adapter-libsql、@prisma/clientを開発依存に追加する。
+
+Prismaを初期化する。schema.prismaではdatasource providerにsqliteを指定するが、urlは記載しない。prisma.config.tsを作成し、@prisma/adapter-libsqlを設定する。ジェネレーターはprisma-clientを指定し、出力先をapp/generated/prismaとする。
+
+better-auth設定ファイルを作成する。この時点ではPrisma Clientがまだ生成されていないため、データベース設定は仮の状態で構わない。サーバー側設定にAnonymousプラグインを追加し、クライアント側設定にanonymousClientプラグインを追加する。
+
+npx @better-auth/cli generateを実行してPrismaスキーマにテーブル定義を追加する。CLIがbetter-auth設定を読み取り、User、Session、Account、VerificationテーブルとisAnonymousフラグを含むスキーマを生成する。生成されたスキーマにはsnake_caseの@mapアノテーションを追加する。
+
+prisma migrate devでローカルデータベースにマイグレーションを適用し、prisma generateでPrisma Clientを生成する。
+
+データベース接続モジュールを作成する。@libsql/clientでlibSQLクライアントを初期化し、PrismaLibSqlアダプターを通じてPrisma Clientを構築する。
+
+better-auth設定を完成させる。アダプター付きで初期化したPrisma Clientをインポートし、prismaAdapterに渡す。snake_caseカラムに対応するfieldsマッピングを設定する。
+
+認証APIルートを追加する。app/routes/api/auth/$/index.tsxにcatch-allルートを作成し、better-authのハンドラーに委譲する。
+
+React Router v7のmiddlewareで匿名セッションを自動作成する。react-router.config.tsでfuture.v8_middlewareを有効にし、\_app/\_layout.tsxでmiddlewareを実装する。セッションがなければauth.api.signInAnonymousを呼び出し、Set-Cookieヘッダーをレスポンスに追加する。sessionContextを通じて子ルートからセッション情報にアクセスできる。
+
+## ローカル開発
+
+環境変数DATABASE_URLを設定しなければデフォルトでfile:./data/local.dbが使用される。Tursoへの接続は不要である。
+
+マイグレーションはprisma migrate devでローカルに適用する。本番環境（Turso）へはPrisma CLIが直接libSQLプロトコルをサポートしていないため、カスタムスクリプト（scripts/migrate-turso.ts）で適用する。詳細はdocs/database-migration.mdを参照。
+
+## セッションクリーンアップ
+
+期限切れセッションと孤立した匿名ユーザーはVercel Cron Jobで定期削除する。/api/cron/cleanup-sessionsエンドポイントを毎日AM 3:00 (UTC)に実行し、expiresAtが過去のSessionレコードと、Sessionが紐付いていないisAnonymous=trueのUserレコードを削除する。
+
+## 将来の拡張
+
+ソーシャル認証を追加する際は、better-authのsocialProvidersにGoogleやMicrosoftを設定し、onLinkAccountコールバックで匿名ユーザーとの紐付けを処理する。課金機能はStripeと連携し、認証済みユーザーに対してプラン情報を管理する。これらは本設計の範囲外とし、必要になった時点で別途設計する。
+
+better-authプラグイン追加時のマイグレーション手順は以下の通り。npx @better-auth/cli generateでスキーマを再生成し、出力を参考にschema.prismaを手動更新する（snake_caseマッピング付き）。prisma migrate devでマイグレーションを適用し、prisma generateでPrisma Clientを再生成する。

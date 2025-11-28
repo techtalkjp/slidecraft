@@ -6,4 +6,7 @@ import tsconfigPaths from 'vite-tsconfig-paths'
 
 export default defineConfig({
   plugins: [devtoolsJson(), tailwindcss(), reactRouter(), tsconfigPaths()],
+  ssr: {
+    external: ['@prisma/client/runtime/client'],
+  },
 })

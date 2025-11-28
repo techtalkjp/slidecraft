@@ -5,7 +5,33 @@ import { Main } from '~/components/layout/main'
 import { Separator } from '~/components/ui/separator'
 import { SidebarProvider, SidebarTrigger } from '~/components/ui/sidebar'
 import { useBreadcrumbs } from '~/hooks/use-breadcrumbs'
+import { auth } from '~/lib/auth/auth'
+import { sessionContext } from '~/lib/auth/session.context'
 import { cn } from '~/lib/utils'
+import { getOrCreateSession } from './+/session-middleware'
+import type { Route } from './+types/_layout'
+
+/**
+ * _app 配下のルートにアクセスしたときに匿名セッションを自動作成する middleware
+ * セッションがなければ匿名サインインし、context に session を設定
+ * Response に Set-Cookie を追加してクライアントにセッションを渡す
+ */
+export const middleware: Route.MiddlewareFunction[] = [
+  async ({ request, context }, next) => {
+    const { session, setCookieHeader } = await getOrCreateSession(
+      request.headers,
+      auth.api,
+    )
+
+    context.set(sessionContext, session)
+
+    const response = await next()
+    if (setCookieHeader && response) {
+      response.headers.append('set-cookie', setCookieHeader)
+    }
+    return response
+  },
+]
 
 function AppLayoutContent({ isEditorPage }: { isEditorPage: boolean }) {
   const { Breadcrumbs } = useBreadcrumbs()

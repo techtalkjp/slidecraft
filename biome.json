@@ -1,7 +1,7 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.3.7/schema.json",
   "files": {
-    "includes": ["**", "!app/app.css"]
+    "includes": ["**", "!app/app.css", "!app/generated"]
   },
   "assist": { "actions": { "source": { "organizeImports": "off" } } },
   "vcs": {

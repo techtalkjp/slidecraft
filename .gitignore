@@ -1,9 +1,17 @@
 .DS_Store
+
+# Environment files
 .env
+.env.production
+
 /node_modules/
 
 # React Router
 /.react-router/
 /build/
 
+# Local data
+/data/
+
 /references
+.vercel
