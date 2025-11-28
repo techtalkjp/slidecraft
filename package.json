@@ -81,6 +81,7 @@
     "vite": "7.2.4",
     "vite-plugin-devtools-json": "1.0.0",
     "vite-tsconfig-paths": "5.1.4",
-    "vitest": "4.0.13"
+    "vitest": "4.0.13",
+    "zx": "8.8.5"
   }
 }

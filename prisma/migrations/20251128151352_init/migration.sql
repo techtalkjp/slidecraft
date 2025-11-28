@@ -7,7 +7,7 @@ CREATE TABLE "user" (
     "image" TEXT,
     "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" DATETIME NOT NULL,
-    "is_anonymous" BOOLEAN DEFAULT false
+    "is_anonymous" BOOLEAN NOT NULL DEFAULT false
 );
 
 -- CreateTable

@@ -16,7 +16,7 @@ model User {
   image         String?
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
-  isAnonymous   Boolean?  @default(false) @map("is_anonymous")
+  isAnonymous   Boolean   @default(false) @map("is_anonymous")
   sessions      Session[]
   accounts      Account[]
 

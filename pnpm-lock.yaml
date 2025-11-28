@@ -165,6 +165,9 @@ importers:
       vitest:
         specifier: 4.0.13
         version: 4.0.13(@types/node@24.10.1)(@vitest/ui@4.0.13)(happy-dom@20.0.10)(jiti@2.6.1)(jsdom@27.2.0)(lightningcss@1.30.2)(tsx@4.20.6)
+      zx:
+        specifier: 8.8.5
+        version: 8.8.5
 
 packages:
 
@@ -4338,6 +4341,11 @@ packages:
 
   zod@4.1.13:
     resolution: {integrity: sha512-AvvthqfqrAhNH9dnfmrfKzX5upOdjUVJYFqNSlkmGf64gRaTzlPwz99IHYnVs28qYAybvAlBV+H7pn0saFY4Ig==}
+
+  zx@8.8.5:
+    resolution: {integrity: sha512-SNgDF5L0gfN7FwVOdEFguY3orU5AkfFZm9B5YSHog/UDHv+lvmd82ZAsOenOkQixigwH2+yyH198AwNdKhj+RA==}
+    engines: {node: '>= 12.17.0'}
+    hasBin: true
 
 snapshots:
 
@@ -8708,3 +8716,5 @@ snapshots:
       grammex: 3.1.11
 
   zod@4.1.13: {}
+
+  zx@8.8.5: {}

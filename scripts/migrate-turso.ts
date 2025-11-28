@@ -4,32 +4,32 @@
  *
  * prisma/migrations/ 内のマイグレーションを Turso に適用
  * _prisma_migrations テーブルで適用済みを管理
+ * turso CLI のログイン状態を使用（トークン不要）
  *
  * Usage:
- *   pnpm db:migrate:turso
+ *   pnpm turso:migrate
  */
 
-import { createClient } from '@libsql/client'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { $ } from 'zx'
 
-const DATABASE_URL = process.env.DATABASE_URL
-if (!DATABASE_URL) {
-  console.error('❌ DATABASE_URL is not set')
-  process.exit(1)
-}
+$.quiet = true
 
-// URL から authToken を抽出
-const url = new URL(DATABASE_URL)
-const authToken = url.searchParams.get('authToken') ?? undefined
-url.searchParams.delete('authToken')
-
-const client = createClient({
-  url: url.toString(),
-  authToken,
-})
-
+const DB_NAME = process.env.TURSO_DB_NAME ?? 'slidecraft'
 const MIGRATIONS_DIR = join(process.cwd(), 'prisma/migrations')
+
+async function tursoShell(sql: string): Promise<string> {
+  try {
+    const result = await $`turso db shell ${DB_NAME} ${sql}`
+    return result.stdout
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('already exists')) {
+      return 'SKIPPED'
+    }
+    throw error
+  }
+}
 
 function splitSqlStatements(sql: string): string[] {
   const statements: string[] = []
@@ -44,25 +44,23 @@ function splitSqlStatements(sql: string): string[] {
     const nextChar = sql[i + 1]
     const prevChar = sql[i - 1]
 
-    // Handle multi-line comments
     if (!inSingleQuote && !inDoubleQuote && !inSingleLineComment) {
       if (char === '/' && nextChar === '*') {
         inMultiLineComment = true
-        i++ // Skip next character
+        i++
         continue
       }
       if (inMultiLineComment && char === '*' && nextChar === '/') {
         inMultiLineComment = false
-        i++ // Skip next character
+        i++
         continue
       }
     }
 
-    // Handle single-line comments
     if (!inSingleQuote && !inDoubleQuote && !inMultiLineComment) {
       if (char === '-' && nextChar === '-') {
         inSingleLineComment = true
-        i++ // Skip next character
+        i++
         continue
       }
       if (inSingleLineComment && char === '\n') {
@@ -75,14 +73,12 @@ function splitSqlStatements(sql: string): string[] {
       continue
     }
 
-    // Handle string literals
     if (char === "'" && prevChar !== '\\') {
       inSingleQuote = !inSingleQuote
     } else if (char === '"' && prevChar !== '\\') {
       inDoubleQuote = !inDoubleQuote
     }
 
-    // Handle semicolons (statement separators)
     if (char === ';' && !inSingleQuote && !inDoubleQuote) {
       const statement = current.trim()
       if (statement.length > 0) {
@@ -95,7 +91,6 @@ function splitSqlStatements(sql: string): string[] {
     current += char
   }
 
-  // Add final statement if exists
   const finalStatement = current.trim()
   if (finalStatement.length > 0) {
     statements.push(finalStatement)
@@ -104,8 +99,8 @@ function splitSqlStatements(sql: string): string[] {
   return statements
 }
 
-async function ensureMigrationsTable() {
-  await client.execute(`
+async function ensureMigrationsTable(): Promise<void> {
+  await tursoShell(`
     CREATE TABLE IF NOT EXISTS _prisma_migrations (
       id TEXT PRIMARY KEY,
       migration_name TEXT NOT NULL UNIQUE,
@@ -115,10 +110,15 @@ async function ensureMigrationsTable() {
 }
 
 async function getAppliedMigrations(): Promise<Set<string>> {
-  const result = await client.execute(
-    'SELECT migration_name FROM _prisma_migrations',
-  )
-  return new Set(result.rows.map((row) => row.migration_name as string))
+  const result = await tursoShell('SELECT migration_name FROM _prisma_migrations')
+  const migrations = new Set<string>()
+  for (const line of result.split('\n')) {
+    const trimmed = line.trim()
+    if (trimmed && !trimmed.startsWith('migration_name')) {
+      migrations.add(trimmed)
+    }
+  }
+  return migrations
 }
 
 function getMigrationFolders(): string[] {
@@ -128,10 +128,10 @@ function getMigrationFolders(): string[] {
   return readdirSync(MIGRATIONS_DIR, { withFileTypes: true })
     .filter((d) => d.isDirectory() && !d.name.startsWith('.'))
     .map((d) => d.name)
-    .sort() // タイムスタンプ順にソート
+    .sort()
 }
 
-async function applyMigration(migrationName: string) {
+async function applyMigration(migrationName: string): Promise<boolean> {
   const sqlPath = join(MIGRATIONS_DIR, migrationName, 'migration.sql')
   if (!existsSync(sqlPath)) {
     console.warn(`⚠️  ${migrationName}: migration.sql not found, skipping`)
@@ -139,50 +139,40 @@ async function applyMigration(migrationName: string) {
   }
 
   const sql = readFileSync(sqlPath, 'utf-8')
-
-  // SQLを個別のステートメントに分割して実行
   const statements = splitSqlStatements(sql)
 
   console.log(`📦 Applying: ${migrationName}`)
 
   for (const statement of statements) {
-    try {
-      await client.execute(statement)
-    } catch (error) {
-      // Check for SQLite "already exists" errors using LibsqlError
-      // SQLITE_ERROR (code 1) is returned for "table already exists", "index already exists", etc.
-      if (
-        error instanceof Error &&
-        'code' in error &&
-        error.code === 'SQLITE_ERROR' &&
-        error.message?.includes('already exists')
-      ) {
-        console.log(`   ⏭️  Skipped (already exists)`)
-        continue
-      }
-      throw error
+    const result = await tursoShell(statement)
+    if (result === 'SKIPPED') {
+      console.log(`   ⏭️  Skipped (already exists)`)
     }
   }
 
-  // 適用済みとして記録
-  await client.execute({
-    sql: 'INSERT INTO _prisma_migrations (id, migration_name) VALUES (?, ?)',
-    args: [crypto.randomUUID(), migrationName],
-  })
+  // migrationName はファイルシステムから取得しているが、念のためバリデーション
+  if (!/^[\w-]+$/.test(migrationName)) {
+    throw new Error(`Invalid migration name: ${migrationName}`)
+  }
+
+  const id = crypto.randomUUID()
+  await tursoShell(
+    `INSERT INTO _prisma_migrations (id, migration_name) VALUES ('${id}', '${migrationName}')`,
+  )
 
   console.log(`✅ Applied: ${migrationName}`)
   return true
 }
 
-async function main() {
+async function main(): Promise<void> {
   console.log('🚀 Turso Migration')
-  console.log(`   Database: ${url.host}`)
+  console.log(`   Database: ${DB_NAME}`)
   console.log('')
 
   await ensureMigrationsTable()
 
   const applied = await getAppliedMigrations()
-  const migrations = await getMigrationFolders()
+  const migrations = getMigrationFolders()
 
   if (migrations.length === 0) {
     console.log('📁 No migrations found in prisma/migrations/')
