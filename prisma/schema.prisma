@@ -9,16 +9,17 @@ datasource db {
 }
 
 model User {
-  id            String    @id
+  id            String        @id
   name          String
   email         String
-  emailVerified Boolean   @default(false) @map("email_verified")
+  emailVerified Boolean       @default(false) @map("email_verified")
   image         String?
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-  isAnonymous   Boolean   @default(false) @map("is_anonymous")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  isAnonymous   Boolean       @default(false) @map("is_anonymous")
   sessions      Session[]
   accounts      Account[]
+  apiUsageLogs  ApiUsageLog[]
 
   @@unique([email])
   @@map("user")
@@ -70,4 +71,34 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+/// API利用ログ（コスト分析用）
+model ApiUsageLog {
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now()) @map("created_at")
+  /// ユーザーID（nullable: 匿名ユーザーや認証前の利用も記録可能）
+  userId       String?  @map("user_id")
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  /// 操作種別: "slide_analysis" | "image_generation"
+  operation    String
+  /// 使用モデル: "gemini-3-pro-preview" | "gemini-2.5-flash" など
+  model        String
+  /// 入力トークン数
+  inputTokens  Int      @map("input_tokens")
+  /// 出力トークン数
+  outputTokens Int      @map("output_tokens")
+  /// コスト（USD）
+  costUsd      Float    @map("cost_usd")
+  /// コスト（JPY）
+  costJpy      Float    @map("cost_jpy")
+  /// 為替レート
+  exchangeRate Float    @map("exchange_rate")
+  /// 追加メタデータ（JSON）
+  metadata     String?
+
+  @@index([createdAt])
+  @@index([operation])
+  @@index([userId])
+  @@map("api_usage_log")
 }

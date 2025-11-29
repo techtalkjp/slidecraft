@@ -7,6 +7,7 @@
 
 import { GoogleGenAI } from '@google/genai'
 import * as z from 'zod'
+import { logApiUsage } from './api-usage-logger'
 import { getExchangeRate } from './cost-calculator'
 import { SlideAnalysisSchema, type SlideAnalysis } from './slide-analysis'
 
@@ -260,6 +261,30 @@ export async function analyzeSlide(
       const cost = calculateCost(model, inputTokens, outputTokens)
       const exchangeRate = await getExchangeRate()
       const costJpy = cost * exchangeRate
+
+      // API利用ログを記録（fire-and-forget）
+      const roleBreakdown = analysis.textElements.reduce(
+        (acc, el) => {
+          acc[el.role] = (acc[el.role] ?? 0) + 1
+          return acc
+        },
+        {} as Record<string, number>,
+      )
+      logApiUsage({
+        operation: 'slide_analysis',
+        model,
+        inputTokens,
+        outputTokens,
+        costUsd: cost,
+        costJpy,
+        exchangeRate,
+        metadata: {
+          imageSize: imageBlob.size,
+          textElementCount: analysis.textElements.length,
+          graphicRegionCount: analysis.graphicRegions.length,
+          roleBreakdown,
+        },
+      })
 
       return {
         analysis,

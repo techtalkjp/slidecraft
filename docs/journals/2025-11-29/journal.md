@@ -748,3 +748,48 @@ JavaScriptオブジェクトのプロパティ列挙順は挿入順が保持さ�
 ### 成果物
 
 - `app/lib/slide-analyzer.client.ts` - デフォルトモデル変更、モデル順序変更
+
+---
+
+## APIコストログ機能の追加
+
+### ユーザー指示
+
+Gemini 3 Proのコストが見積もりの倍になることが多い。DBにログを残したい。どのユーザーが使ったかも含めたい。スライド修正（画像生成）のほうにもログを入れたい。
+
+### ユーザー意図
+
+APIコストの実態を把握し、見積もりと実際の乖離を分析したい。ユーザー別のコスト分析も可能にしたい。
+
+### 作業内容
+
+`ApiUsageLog`テーブルをPrismaスキーマに追加した。記録する情報は以下の通り。
+
+- `userId` - ユーザーID（nullable、匿名ユーザーも記録可能）
+- `operation` - 操作種別（slide_analysis / image_generation）
+- `model` - 使用モデル
+- `inputTokens` / `outputTokens` - トークン数
+- `costUsd` / `costJpy` / `exchangeRate` - コスト情報
+- `metadata` - JSON形式の追加情報
+
+メタデータにはスライド解析の場合は`imageSize`、`textElementCount`、`graphicRegionCount`、`roleBreakdown`（テキスト要素のロール別内訳）を記録。画像生成の場合は`promptLength`、`requestedCount`、`generatedCount`、`originalImageSize`を記録。
+
+APIエンドポイント`POST /api/usage-log`を作成し、クライアントからfire-and-forgetでログを送信する仕組みを実装。エンドポイント側でセッションから`userId`を自動取得するため、クライアントは認証情報を意識する必要がない。
+
+`slide-analyzer.client.ts`と`gemini-api.client.ts`の両方にログ記録処理を追加。画像生成は並列で複数リクエストを送信するため、各リクエストの`usageMetadata`を集計してトータルのトークン数とコストを算出。
+
+本番DB（Turso）へのマイグレーションは`pnpm turso:migrate`で実行。
+
+### 成果物
+
+- `prisma/schema.prisma` - ApiUsageLogモデル追加、Userにリレーション追加
+- `prisma/migrations/20251129092523_add_api_usage_log/` - テーブル作成
+- `prisma/migrations/20251129092731_add_user_to_api_usage_log/` - userId追加
+- `app/routes/api/usage-log/index.tsx` - ログ記録APIエンドポイント
+- `app/lib/api-usage-logger.ts` - クライアント側ロガー
+- `app/lib/slide-analyzer.client.ts` - 解析完了時にログ記録
+- `app/lib/gemini-api.client.ts` - 画像生成完了時にログ記録
+
+### 改善提案
+
+ログが蓄積されたら、ダッシュボード画面を作成してコストの推移やユーザー別の利用状況を可視化できるとよい。また、見積もりロジックの精度向上のため、実際のトークン数と見積もりの比較分析も有用。

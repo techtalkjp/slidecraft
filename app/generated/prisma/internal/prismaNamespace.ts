@@ -387,7 +387,8 @@ export const ModelName = {
   User: 'User',
   Session: 'Session',
   Account: 'Account',
-  Verification: 'Verification'
+  Verification: 'Verification',
+  ApiUsageLog: 'ApiUsageLog'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -403,7 +404,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification"
+    modelProps: "user" | "session" | "account" | "verification" | "apiUsageLog"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -703,6 +704,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ApiUsageLog: {
+      payload: Prisma.$ApiUsageLogPayload<ExtArgs>
+      fields: Prisma.ApiUsageLogFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ApiUsageLogFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApiUsageLogPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ApiUsageLogFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApiUsageLogPayload>
+        }
+        findFirst: {
+          args: Prisma.ApiUsageLogFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApiUsageLogPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ApiUsageLogFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApiUsageLogPayload>
+        }
+        findMany: {
+          args: Prisma.ApiUsageLogFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApiUsageLogPayload>[]
+        }
+        create: {
+          args: Prisma.ApiUsageLogCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApiUsageLogPayload>
+        }
+        createMany: {
+          args: Prisma.ApiUsageLogCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ApiUsageLogCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApiUsageLogPayload>[]
+        }
+        delete: {
+          args: Prisma.ApiUsageLogDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApiUsageLogPayload>
+        }
+        update: {
+          args: Prisma.ApiUsageLogUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApiUsageLogPayload>
+        }
+        deleteMany: {
+          args: Prisma.ApiUsageLogDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ApiUsageLogUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ApiUsageLogUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApiUsageLogPayload>[]
+        }
+        upsert: {
+          args: Prisma.ApiUsageLogUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ApiUsageLogPayload>
+        }
+        aggregate: {
+          args: Prisma.ApiUsageLogAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateApiUsageLog>
+        }
+        groupBy: {
+          args: Prisma.ApiUsageLogGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ApiUsageLogGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ApiUsageLogCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ApiUsageLogCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -798,6 +873,23 @@ export const VerificationScalarFieldEnum = {
 export type VerificationScalarFieldEnum = (typeof VerificationScalarFieldEnum)[keyof typeof VerificationScalarFieldEnum]
 
 
+export const ApiUsageLogScalarFieldEnum = {
+  id: 'id',
+  createdAt: 'createdAt',
+  userId: 'userId',
+  operation: 'operation',
+  model: 'model',
+  inputTokens: 'inputTokens',
+  outputTokens: 'outputTokens',
+  costUsd: 'costUsd',
+  costJpy: 'costJpy',
+  exchangeRate: 'exchangeRate',
+  metadata: 'metadata'
+} as const
+
+export type ApiUsageLogScalarFieldEnum = (typeof ApiUsageLogScalarFieldEnum)[keyof typeof ApiUsageLogScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -845,6 +937,13 @@ export type DateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel
  * Reference to a field of type 'Int'
  */
 export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Int'>
+    
+
+
+/**
+ * Reference to a field of type 'Float'
+ */
+export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
     
 
 /**
@@ -930,6 +1029,7 @@ export type GlobalOmitConfig = {
   session?: Prisma.SessionOmit
   account?: Prisma.AccountOmit
   verification?: Prisma.VerificationOmit
+  apiUsageLog?: Prisma.ApiUsageLogOmit
 }
 
 /* Types for Logging */

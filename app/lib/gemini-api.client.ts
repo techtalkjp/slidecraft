@@ -6,6 +6,8 @@
  */
 
 import { GoogleGenAI } from '@google/genai'
+import { logApiUsage } from './api-usage-logger'
+import { getExchangeRate } from './cost-calculator'
 
 /**
  * Data URLからBase64部分のみを抽出
@@ -75,6 +77,10 @@ export async function generateSlideVariations(
     // Gemini APIクライアントを初期化
     const ai = new GoogleGenAI({ apiKey })
 
+    // 使用量を集計するための変数
+    let totalInputTokens = 0
+    let totalOutputTokens = 0
+
     // 複数の画像を並列生成
     const requests = Array.from({ length: count }).map(async (_, index) => {
       try {
@@ -101,6 +107,13 @@ export async function generateSlideVariations(
             },
           },
         })
+
+        // 使用量を集計
+        const usageMetadata = response.usageMetadata
+        if (usageMetadata) {
+          totalInputTokens += usageMetadata.promptTokenCount ?? 0
+          totalOutputTokens += usageMetadata.candidatesTokenCount ?? 0
+        }
 
         // レスポンスから画像を抽出
         const candidates = response.candidates
@@ -135,6 +148,29 @@ export async function generateSlideVariations(
     if (validResults.length === 0) {
       throw new Error('画像の生成に失敗しました')
     }
+
+    // API利用ログを記録（fire-and-forget）
+    // 画像生成モデルの料金: input $2.00/1M, output $12.00/1M (gemini-3-pro-image-preview)
+    const inputCost = (totalInputTokens / 1_000_000) * 2.0
+    const outputCost = (totalOutputTokens / 1_000_000) * 12.0
+    const costUsd = inputCost + outputCost
+    getExchangeRate().then((exchangeRate) => {
+      logApiUsage({
+        operation: 'image_generation',
+        model: MODEL_NAME,
+        inputTokens: totalInputTokens,
+        outputTokens: totalOutputTokens,
+        costUsd,
+        costJpy: costUsd * exchangeRate,
+        exchangeRate,
+        metadata: {
+          promptLength: prompt.length,
+          requestedCount: count,
+          generatedCount: validResults.length,
+          originalImageSize: originalImage.size,
+        },
+      })
+    })
 
     return validResults
   } catch (error) {

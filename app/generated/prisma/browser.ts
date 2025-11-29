@@ -37,3 +37,8 @@ export type Account = Prisma.AccountModel
  * 
  */
 export type Verification = Prisma.VerificationModel
+/**
+ * Model ApiUsageLog
+ * API利用ログ（コスト分析用）
+ */
+export type ApiUsageLog = Prisma.ApiUsageLogModel
