@@ -1,7 +1,23 @@
 import { data } from 'react-router'
+import * as z from 'zod'
 import { auth } from '~/lib/auth/auth'
 import { prisma } from '~/lib/db/prisma'
 import type { Route } from './+types'
+
+// メタデータの最大サイズ（10KB）
+const MAX_METADATA_SIZE = 10 * 1024
+
+// 入力スキーマ
+const ApiUsageLogSchema = z.object({
+  operation: z.enum(['slide_analysis', 'image_generation']),
+  model: z.string().min(1).max(100),
+  inputTokens: z.number().int().nonnegative().max(10_000_000).default(0),
+  outputTokens: z.number().int().nonnegative().max(10_000_000).default(0),
+  costUsd: z.number().nonnegative().max(1000).default(0),
+  costJpy: z.number().nonnegative().max(150_000).default(0),
+  exchangeRate: z.number().positive().max(500).default(150),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+})
 
 /**
  * API利用ログを記録するエンドポイント
@@ -19,6 +35,12 @@ export async function action({ request }: Route.ActionArgs) {
 
     const body = await request.json()
 
+    // Zodでバリデーション
+    const parseResult = ApiUsageLogSchema.safeParse(body)
+    if (!parseResult.success) {
+      return data({ error: 'Invalid request body' }, { status: 400 })
+    }
+
     const {
       operation,
       model,
@@ -28,11 +50,15 @@ export async function action({ request }: Route.ActionArgs) {
       costJpy,
       exchangeRate,
       metadata,
-    } = body
+    } = parseResult.data
 
-    // バリデーション
-    if (!operation || !model) {
-      return data({ error: 'Missing required fields' }, { status: 400 })
+    // メタデータのサイズチェック
+    let metadataJson: string | null = null
+    if (metadata) {
+      metadataJson = JSON.stringify(metadata)
+      if (metadataJson.length > MAX_METADATA_SIZE) {
+        return data({ error: 'Metadata too large' }, { status: 400 })
+      }
     }
 
     await prisma.apiUsageLog.create({
@@ -40,12 +66,12 @@ export async function action({ request }: Route.ActionArgs) {
         userId,
         operation,
         model,
-        inputTokens: inputTokens ?? 0,
-        outputTokens: outputTokens ?? 0,
-        costUsd: costUsd ?? 0,
-        costJpy: costJpy ?? 0,
-        exchangeRate: exchangeRate ?? 150,
-        metadata: metadata ? JSON.stringify(metadata) : null,
+        inputTokens,
+        outputTokens,
+        costUsd,
+        costJpy,
+        exchangeRate,
+        metadata: metadataJson,
       },
     })
 
