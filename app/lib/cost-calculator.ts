@@ -39,9 +39,10 @@ export const IMAGE_PRICING = {
 /**
  * モデルの料金を取得（未定義の場合はデフォルト値）
  */
-export function getModelPricing(
-  model: string,
-): { input: number; output: number } {
+export function getModelPricing(model: string): {
+  input: number
+  output: number
+} {
   return MODEL_PRICING[model as ModelId] ?? { input: 0.15, output: 0.6 }
 }
 
