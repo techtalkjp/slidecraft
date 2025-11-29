@@ -106,6 +106,7 @@ export function usePptxExport({
       setState('ready')
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') {
+        setState('idle')
         return
       }
 

@@ -482,3 +482,18 @@ CodeRabbitAIのレビュー指摘にも対応した。
 
 - `app/lib/slide-analyzer.client.ts` - AbortSignal対応
 - `app/routes/_app/projects/$projectId/edit/+/control-panel.tsx` - toast.error追加
+
+追加レビュー対応：
+
+- **blobToBase64のData URLバリデーション**: `dataUrl.split(',')[1]`がundefinedになる可能性を考慮し、partsの長さと存在チェックを追加。
+
+- **AbortError時の状態リセット**: `use-pptx-export.ts`でAbortError発生時に`setState('idle')`を追加し、キャンセル後も状態が適切にリセットされるよう修正。
+
+- **ユニットテスト追加**: 純粋関数のテストを追加してリグレッション防止。`percentToPixel`（5テスト）、`parseJsonResponse`（6テスト）、`calculateCost`（4テスト）の計15テストを作成。テスト対象関数をexportに変更。
+
+成果物（追加レビュー対応）:
+
+- `app/lib/slide-analyzer.client.ts` - blobToBase64バリデーション強化、parseJsonResponseをexport
+- `app/lib/graphic-extractor.client.ts` - percentToPixelをexport
+- `app/routes/_app/projects/$projectId/edit/+/hooks/use-pptx-export.ts` - AbortError時の状態リセット
+- `app/lib/pptx-export.test.ts` - ユニットテスト追加（新規）

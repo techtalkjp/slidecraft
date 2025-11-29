@@ -77,7 +77,7 @@ export function blobToDataUrl(blob: Blob): Promise<string> {
 /**
  * パーセンテージ座標からピクセル座標に変換（境界チェック付き）
  */
-function percentToPixel(percent: number, dimension: number): number {
+export function percentToPixel(percent: number, dimension: number): number {
   const pixel = Math.round((percent / 100) * dimension)
   // 境界チェック
   return Math.max(0, Math.min(pixel, dimension))

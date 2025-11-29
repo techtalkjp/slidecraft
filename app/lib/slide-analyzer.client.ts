@@ -142,8 +142,12 @@ function blobToBase64(blob: Blob): Promise<string> {
     reader.onloadend = () => {
       const dataUrl = reader.result as string
       // data:image/png;base64, の部分を除去してBase64部分のみ取得
-      const base64 = dataUrl.split(',')[1]
-      resolve(base64)
+      const parts = dataUrl.split(',')
+      if (parts.length !== 2 || !parts[1]) {
+        reject(new Error('無効なData URL形式です'))
+        return
+      }
+      resolve(parts[1])
     }
     reader.onerror = reject
     reader.readAsDataURL(blob)
@@ -153,7 +157,7 @@ function blobToBase64(blob: Blob): Promise<string> {
 /**
  * JSONレスポンスからSlideAnalysisをパース
  */
-function parseJsonResponse(text: string): SlideAnalysis {
+export function parseJsonResponse(text: string): SlideAnalysis {
   // JSONブロックを抽出（```json ... ``` または { ... }）
   let jsonStr = text.trim()
 
