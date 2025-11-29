@@ -20,7 +20,8 @@ interface PptxExportDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   imageBlob: Blob | null
-  slideTitle?: string
+  projectName: string
+  slideNumber: number
   onApiKeyRequired: () => void
 }
 
@@ -28,7 +29,8 @@ export function PptxExportDialog({
   open,
   onOpenChange,
   imageBlob,
-  slideTitle,
+  projectName,
+  slideNumber,
   onApiKeyRequired,
 }: PptxExportDialogProps) {
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null)
@@ -47,7 +49,8 @@ export function PptxExportDialog({
     handleDownload,
   } = usePptxExport({
     imageBlob,
-    slideTitle,
+    projectName,
+    slideNumber,
     open,
     onApiKeyRequired,
   })

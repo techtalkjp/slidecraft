@@ -18,14 +18,18 @@ import { PptxExportDialog } from './components/pptx-export-dialog'
 
 interface EditorActionsProps {
   projectId: string
+  projectName: string
   slides: Slide[]
   selectedSlide: Slide
+  slideNumber: number
 }
 
 export function EditorActions({
   projectId,
+  projectName,
   slides,
   selectedSlide,
+  slideNumber,
 }: EditorActionsProps) {
   const [isExporting, setIsExporting] = useState(false)
   const [exportProgress, setExportProgress] = useState<{
@@ -149,7 +153,8 @@ export function EditorActions({
         open={showPptxDialog}
         onOpenChange={setShowPptxDialog}
         imageBlob={currentSlideBlob}
-        slideTitle={selectedSlide.id}
+        projectName={projectName}
+        slideNumber={slideNumber}
         onApiKeyRequired={handleApiKeyRequired}
       />
 

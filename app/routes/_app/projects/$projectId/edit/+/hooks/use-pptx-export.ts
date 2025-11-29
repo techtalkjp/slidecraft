@@ -21,14 +21,16 @@ type ExportState = 'idle' | 'analyzing' | 'extracting' | 'generating' | 'ready'
 
 interface UsePptxExportOptions {
   imageBlob: Blob | null
-  slideTitle?: string
+  projectName: string
+  slideNumber: number
   open: boolean
   onApiKeyRequired: () => void
 }
 
 export function usePptxExport({
   imageBlob,
-  slideTitle,
+  projectName,
+  slideNumber,
   open,
   onApiKeyRequired,
 }: UsePptxExportOptions) {
@@ -102,7 +104,7 @@ export function usePptxExport({
         analysis: result.analysis,
         graphics: extractedGraphics,
         imageDimensions: dimensions,
-        fileName: `${slideTitle || result.analysis.slideTitle || 'slide'}.pptx`,
+        fileName: `${projectName}_${slideNumber}.pptx`,
       })
       setPptxResult(pptx)
 
@@ -118,7 +120,7 @@ export function usePptxExport({
       )
       setState('idle')
     }
-  }, [imageBlob, selectedModel, slideTitle, onApiKeyRequired])
+  }, [imageBlob, selectedModel, projectName, slideNumber, onApiKeyRequired])
 
   const handleDownload = useCallback(() => {
     if (pptxResult) {
