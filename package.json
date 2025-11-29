@@ -2,6 +2,7 @@
   "name": "slidecraft",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.17.0",
   "pnpm": {
     "onlyBuiltDependencies": [
       "@tailwindcss/oxide",
