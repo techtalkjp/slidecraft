@@ -218,7 +218,10 @@ async function main(): Promise<void> {
   console.log('✨ Done!')
 }
 
-main().catch((error) => {
-  console.error('❌ Migration failed:', error)
-  process.exit(1)
-})
+// Only run main when executed directly (not when imported for testing)
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main().catch((error) => {
+    console.error('❌ Migration failed:', error)
+    process.exit(1)
+  })
+}

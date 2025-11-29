@@ -1009,3 +1009,38 @@ PRのレビュー指摘を解消し、コードの品質とセキュリティを
 - `app/lib/env.server.ts` - VERCEL_ENV事前バリデーション、z.infer型導出
 - `app/routes/api/cron/cleanup-sessions/index.tsx` - VERCEL_ENVベース認証判定
 - `.env.example` - Vercel環境変数ドキュメント追加
+
+---
+
+## GitHub Actions CI/CD設定
+
+### ユーザー指示
+
+GitHub Actionsでpull requestマージする前にvalidateが通ることを確認したい。なるべく短い時間で終えたい。
+
+### ユーザー意図
+
+PRマージ前に自動でコード品質チェック（format、lint、typecheck）を実行し、問題があればマージをブロックしたい。
+
+### 作業内容
+
+`.github/workflows/validate.yml`を新規作成した。PRとmainへのpush時にvalidateを実行するワークフロー。
+
+時間短縮のため以下の最適化を実施。
+
+- `concurrency`設定で同一PRの古いジョブを自動キャンセル
+- `pnpm/action-setup`と`actions/setup-node`の`cache: pnpm`でnode_modulesをキャッシュ
+- `run-p format lint`でformatとlintを並列実行
+
+Node.jsバージョン指定のため`.node-version`ファイルを作成（Node 22）。
+
+GitHub Branch Rulesets（Branch Protection Rulesの後継）を`gh api`コマンドで作成。mainブランチに対して以下を設定。
+
+- PR必須（直接pushを禁止）
+- `validate`ステータスチェック必須
+
+### 成果物
+
+- `.github/workflows/validate.yml` - CI/CDワークフロー
+- `.node-version` - Node.jsバージョン指定
+- GitHub Ruleset「Protect main」- mainブランチ保護設定
