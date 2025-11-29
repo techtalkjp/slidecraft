@@ -3,14 +3,11 @@ import { prismaAdapter } from 'better-auth/adapters/prisma'
 import { anonymous } from 'better-auth/plugins'
 import { prisma } from '~/lib/db/prisma'
 
-// BETTER_AUTH_SECRET が未設定の場合、ローカル開発用のフォールバック
+// BETTER_AUTH_SECRET を取得
 // 本番環境・Preview環境では env.server.ts で必須チェック済み
-function getSecret(): string {
-  if (process.env.BETTER_AUTH_SECRET) {
-    return process.env.BETTER_AUTH_SECRET
-  }
-  // ローカル開発用: 固定値（開発中はセッション維持）
-  return 'local-development-secret-do-not-use-in-production'
+// ローカル開発では .env に設定するか、未設定でも動作（better-authが内部で生成）
+function getSecret(): string | undefined {
+  return process.env.BETTER_AUTH_SECRET
 }
 
 // BETTER_AUTH_URL が未設定の場合、VERCEL_URL からフォールバック
