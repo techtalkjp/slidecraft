@@ -12,7 +12,7 @@ export const TextElementSchema = z.object({
   y: z.number().describe('上からの位置（0-100%）'),
   width: z.number().describe('幅（0-100%）'),
   height: z.number().describe('高さ（0-100%）'),
-  fontSize: z.number().describe('フォントサイズ（pt）'),
+  fontSize: z.number().describe('フォントサイズ（スライド高さに対する割合%）'),
   fontWeight: z
     .enum(['light', 'normal', 'medium', 'bold', 'black'])
     .describe(
