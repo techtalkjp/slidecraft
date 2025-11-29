@@ -98,7 +98,9 @@ export default function Editor({ loaderData }: Route.ComponentProps) {
         <ResizablePanel defaultSize={25} minSize={20} maxSize={35}>
           <ControlPanel
             projectId={projectId}
+            projectName={loaderData.project.name}
             slide={slides[selectedIndex]}
+            slideNumber={selectedIndex + 1}
             allSlides={slides}
             onSlideUpdate={handleSlideUpdate}
           />

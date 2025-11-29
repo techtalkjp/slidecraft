@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router'
 import { AppSidebar } from '~/components/layout/app-sidebar'
 import { Main } from '~/components/layout/main'
-import { Separator } from '~/components/ui/separator'
 import { SidebarProvider, SidebarTrigger } from '~/components/ui/sidebar'
 import { useBreadcrumbs } from '~/hooks/use-breadcrumbs'
 import { auth } from '~/lib/auth/auth'
@@ -49,15 +48,16 @@ function AppLayoutContent({ isEditorPage }: { isEditorPage: boolean }) {
           'flex h-svh flex-col',
         )}
       >
-        <header className="bg-background flex h-12 items-center gap-3 border-b px-4 sm:gap-4">
-          <SidebarTrigger className="-ml-1 scale-125 sm:scale-100" />
-          <Separator orientation="vertical" className="h-6" />
-          <div className="flex w-full items-center justify-between gap-2">
-            <Breadcrumbs />
-            {isEditorPage && (
-              <div id="editor-actions" className="flex items-center gap-2" />
-            )}
+        <header className="bg-background grid h-10 grid-cols-[auto_1fr_auto] items-center border-b">
+          <div className="flex h-full items-center border-r px-2">
+            <SidebarTrigger />
           </div>
+          <div className="px-4">
+            <Breadcrumbs />
+          </div>
+          {isEditorPage && (
+            <div id="editor-actions" className="flex items-center gap-2 px-4" />
+          )}
         </header>
         {isEditorPage ? (
           <div className="flex-1 overflow-hidden">

@@ -45,7 +45,7 @@ export function MainPreview({
   const isEdited = slide.currentGeneratedId !== undefined
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-slate-50">
+    <div className="flex h-full flex-col overflow-hidden">
       {/* ヘッダー */}
       <PreviewHeader
         slideNumber={slideNumber}

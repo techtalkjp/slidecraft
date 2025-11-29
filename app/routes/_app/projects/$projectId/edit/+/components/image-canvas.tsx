@@ -37,7 +37,7 @@ export function ImageCanvas({
   return (
     /* biome-ignore lint/a11y/noStaticElementInteractions: 画像ビューアとしてズーム・パン操作が必要 */
     <div
-      className="relative flex flex-1 items-center justify-center overflow-hidden bg-slate-100/50 p-8"
+      className="relative flex flex-1 items-center justify-center overflow-hidden bg-slate-100 p-8"
       onWheel={onWheel}
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
