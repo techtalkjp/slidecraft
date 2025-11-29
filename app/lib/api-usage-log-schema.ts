@@ -18,5 +18,3 @@ export const ApiUsageLogSchema = z.object({
   exchangeRate: z.number().positive().max(500),
   metadata: z.record(z.string(), z.unknown()).optional(),
 })
-
-export type ApiUsageLogInput = z.infer<typeof ApiUsageLogSchema>
