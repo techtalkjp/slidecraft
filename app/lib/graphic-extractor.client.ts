@@ -160,21 +160,18 @@ export async function extractAllGraphicRegions(
   }
 
   const dimensions = await getImageDimensions(imageBlob)
-  const results: ExtractedGraphic[] = []
 
-  for (const region of regions) {
-    try {
-      const extracted = await extractGraphicRegion(
-        imageBlob,
-        region,
-        dimensions,
-      )
-      results.push(extracted)
-    } catch (error) {
+  // 並列で切り出し処理を実行
+  const promises = regions.map((region) =>
+    extractGraphicRegion(imageBlob, region, dimensions).catch((error) => {
       // 境界外などのエラーはスキップして続行
       console.warn('グラフィック切り出しエラー:', region.description, error)
-    }
-  }
+      return null
+    }),
+  )
 
-  return results
+  const results = await Promise.all(promises)
+
+  // エラーでnullになったものを除外
+  return results.filter((r): r is ExtractedGraphic => r !== null)
 }
