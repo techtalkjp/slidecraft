@@ -76,8 +76,14 @@ function selectFontFace(
  * Data URLからBase64データ部分を抽出
  */
 function extractBase64FromDataUrl(dataUrl: string): string {
+  if (!dataUrl.startsWith('data:')) {
+    throw new Error('無効なData URL形式です')
+  }
   const parts = dataUrl.split(',')
-  return parts[1] || ''
+  if (parts.length !== 2 || !parts[1]) {
+    throw new Error('Base64データの抽出に失敗しました')
+  }
+  return parts[1]
 }
 
 export interface GeneratePptxOptions {
