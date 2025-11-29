@@ -16,12 +16,12 @@ export const ANALYSIS_MODELS = {
   'gemini-3-pro-preview': {
     id: 'gemini-3-pro-preview',
     name: 'Gemini 3 Pro',
-    estimatedCostJpy: 8, // 概算コスト（円、実際はトークン数で変動）
+    estimatedCostJpy: 6, // 概算コスト（円、実際はトークン数で変動）
   },
   'gemini-2.5-flash': {
     id: 'gemini-2.5-flash',
     name: 'Gemini 2.5 Flash',
-    estimatedCostJpy: 0.5, // 概算コスト（円、実際はトークン数で変動）
+    estimatedCostJpy: 1.5, // 概算コスト（円、実際はトークン数で変動）
   },
 } as const
 

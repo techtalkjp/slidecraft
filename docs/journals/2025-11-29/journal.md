@@ -1044,3 +1044,45 @@ GitHub Branch Rulesets（Branch Protection Rulesの後継）を`gh api`コマン
 - `.github/workflows/validate.yml` - CI/CDワークフロー
 - `.node-version` - Node.jsバージョン指定
 - GitHub Ruleset「Protect main」- mainブランチ保護設定
+
+---
+
+## Gemini API料金の更新
+
+### ユーザー指示
+
+PPTXスライド解析のGemini 3 Proの価格とトークン計算を確認したい。高すぎる気がする。
+
+### ユーザー意図
+
+APIコストの正確性を検証し、必要であれば料金定義を修正したい。
+
+### 作業内容
+
+DBに記録されたログを確認し、料金計算を検証した。
+
+Gemini 3 Pro Preview:
+
+- input: 2,884 tokens × $2.00/1M = $0.005768
+- output: 2,517 tokens × $12.00/1M = $0.030204
+- 合計: $0.035972（約¥5.6）
+
+計算は正しかった。出力コストが全体の84%を占めており、出力トークン単価が高い（$12/1M）ことが原因。
+
+Gemini 2.5 Flashで同じスライドを解析した場合のログも確認。料金定義を検証したところ、Flashの料金が古いことが判明。
+
+| モデル             | コード内の料金 | 実際の料金（2025年11月） |
+| ------------------ | -------------- | ------------------------ |
+| 2.5 Flash (input)  | $0.15/1M       | $0.30/1M                 |
+| 2.5 Flash (output) | $0.60/1M       | $2.50/1M                 |
+| 3 Pro Preview      | $2.00/$12.00   | $2.00/$12.00（正しい）   |
+
+Gemini 2.5 Flashの料金は約4倍に上がっていた。`cost-calculator.ts`の料金定義を更新。目安コストも実測に基づき調整（Pro: ¥8→¥6、Flash: ¥0.5→¥1.5）。
+
+テストの期待値も新料金に合わせて更新。
+
+### 成果物
+
+- `app/lib/cost-calculator.ts` - Gemini 2.5 Flash料金を$0.30/$2.50に更新
+- `app/lib/slide-analyzer.client.ts` - 目安コスト更新
+- `app/lib/pptx-export.test.ts` - テストの期待値を新料金に合わせて更新

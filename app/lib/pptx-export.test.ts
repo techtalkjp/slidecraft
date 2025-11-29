@@ -119,9 +119,9 @@ describe('parseJsonResponse', () => {
 
 describe('calculateCost', () => {
   it('gemini-2.5-flashのコストを正しく計算する', () => {
-    // 1M input tokens @ $0.15, 1M output tokens @ $0.6
+    // 1M input tokens @ $0.30, 1M output tokens @ $2.50
     const cost = calculateCost('gemini-2.5-flash', 1_000_000, 1_000_000)
-    expect(cost).toBeCloseTo(0.75, 5)
+    expect(cost).toBeCloseTo(2.8, 5)
   })
 
   it('gemini-3-pro-previewのコストを正しく計算する', () => {
@@ -131,9 +131,9 @@ describe('calculateCost', () => {
   })
 
   it('少量のトークンでも正しく計算する', () => {
-    // 1000 input tokens @ $0.15/M, 500 output tokens @ $0.6/M
+    // 1000 input tokens @ $0.30/M, 500 output tokens @ $2.50/M
     const cost = calculateCost('gemini-2.5-flash', 1000, 500)
-    const expected = (1000 / 1_000_000) * 0.15 + (500 / 1_000_000) * 0.6
+    const expected = (1000 / 1_000_000) * 0.3 + (500 / 1_000_000) * 2.5
     expect(cost).toBeCloseTo(expected, 10)
   })
 

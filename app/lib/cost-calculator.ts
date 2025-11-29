@@ -1,10 +1,10 @@
 /**
  * Gemini API コスト計算ユーティリティ
  *
- * 料金体系（Standard Tier）:
- * - Gemini 2.5 Flash: input $0.15/1M, output $0.60/1M
- * - Gemini 3 Pro: input $2.00/1M, output $12.00/1M
- * - Gemini 3 Pro Image: input $2.00/1M, output $12.00/1M (+ 画像出力料金)
+ * 料金体系（Standard Tier、2025年11月時点）:
+ * - Gemini 2.5 Flash: input $0.30/1M, output $2.50/1M
+ * - Gemini 3 Pro Preview: input $2.00/1M, output $12.00/1M
+ * - Gemini 3 Pro Image Preview: input $2.00/1M, output $12.00/1M (+ 画像出力料金)
  *   - 画像入力: $2.00/1M tokens → 約 $0.0011/image
  *   - 画像出力: $120.00/1M tokens
  *     - 1K/2K解像度 (1024-2048px): $0.134/image (1,120 tokens)
@@ -19,7 +19,7 @@
  */
 export const MODEL_PRICING = {
   // テキストモデル
-  'gemini-2.5-flash': { input: 0.15, output: 0.6 },
+  'gemini-2.5-flash': { input: 0.3, output: 2.5 },
   'gemini-3-pro-preview': { input: 2.0, output: 12.0 },
   // 画像生成モデル
   'gemini-3-pro-image-preview': { input: 2.0, output: 12.0 },
