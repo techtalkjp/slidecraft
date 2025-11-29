@@ -170,10 +170,23 @@ function parseJsonResponse(text: string): SlideAnalysis {
   }
 
   // JSONパース
-  const parsed = JSON.parse(jsonStr)
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(jsonStr)
+  } catch (e) {
+    throw new Error(
+      `JSONパースエラー: ${e instanceof Error ? e.message : '不明なエラー'}`,
+    )
+  }
 
   // Zodでバリデーション
-  return SlideAnalysisSchema.parse(parsed)
+  try {
+    return SlideAnalysisSchema.parse(parsed)
+  } catch (e) {
+    throw new Error(
+      `スキーマバリデーションエラー: ${e instanceof Error ? e.message : '不明なエラー'}`,
+    )
+  }
 }
 
 export interface AnalyzeSlideOptions {
