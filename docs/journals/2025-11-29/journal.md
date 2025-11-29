@@ -346,6 +346,7 @@ PPTXエクスポートボタンをEditorActions（ヘッダー）からControlPa
 ### 作業内容
 
 当初の状態：
+
 - Sidebar: `bg-slate-100`
 - MainPreview外側: `bg-slate-50`
 - ImageCanvas: `bg-slate-100/50`（50%透過）
@@ -353,6 +354,7 @@ PPTXエクスポートボタンをEditorActions（ヘッダー）からControlPa
 ImageCanvasの`bg-slate-100/50`がMainPreviewの`bg-slate-50`と重なって濃く見えていた。透過の重ね塗りは複雑なので、シンプルに透過なしで統一する方針を採用。
 
 変更後：
+
 - Sidebar: `bg-slate-100`
 - MainPreview外側: 背景なし（削除）
 - ImageCanvas: `bg-slate-100`（透過なし）
