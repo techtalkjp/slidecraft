@@ -28,18 +28,9 @@ const schema = z.object({
   CRON_SECRET: isStrictEnv ? z.string().min(1) : z.string().optional(),
 })
 
-// 循環参照を避けるため、手動で型定義
-interface Env {
-  NODE_ENV: 'development' | 'production' | 'test'
-  VERCEL_ENV?: 'production' | 'preview' | 'development'
-  VERCEL_URL?: string
-  DATABASE_URL: string
-  DATABASE_AUTH_TOKEN?: string
-  BETTER_AUTH_SECRET?: string
-  BETTER_AUTH_URL?: string
-  BETTER_AUTH_TRUSTED_ORIGINS?: string
-  CRON_SECRET?: string
-}
+// スキーマから型を導出（手動定義との乖離を防止）
+// isStrictEnv による条件分岐があるため、常に optional として扱う
+type Env = z.infer<typeof schema>
 
 declare global {
   namespace NodeJS {
