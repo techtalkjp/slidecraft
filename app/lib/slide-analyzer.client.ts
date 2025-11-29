@@ -6,6 +6,7 @@
  */
 
 import { GoogleGenAI } from '@google/genai'
+import * as z from 'zod'
 import { getExchangeRate } from './cost-calculator'
 import { SlideAnalysisSchema, type SlideAnalysis } from './slide-analysis'
 
@@ -58,7 +59,7 @@ export interface UsageInfo {
   costJpy: number // 円換算
 }
 
-// システムプロンプト（slide-extractorから移植）
+// システムプロンプト（構造化出力用に簡素化）
 const SYSTEM_PROMPT = `あなたはスライド画像を解析して、編集可能なPowerPointに変換するためのデータを抽出する専門家です。
 
 画像を分析し、以下の情報を正確に抽出してください：
@@ -91,7 +92,7 @@ const SYSTEM_PROMPT = `あなたはスライド画像を解析して、編集可
 - 例：IBMの横縞ロゴ → graphicRegions、"NotebookLM" の文字 → textElements
 
 3. 背景色
-   - スライドの主要な背景色を抽出
+   - スライドの主要な背景色を抽出（hex形式、#なし）
 
 【重要】テキストボックスのサイズ指定について：
 - テキストが1文字でも溢れて改行されないよう、widthは実際のテキスト幅より10-15%程度余裕を持たせてください
@@ -99,39 +100,10 @@ const SYSTEM_PROMPT = `あなたはスライド画像を解析して、編集可
 - heightも同様に、フォントサイズに対して十分な高さを確保してください
 
 位置とサイズの指定では、テキストがグラフィックと重ならないよう注意してください。
-グラフィック領域は、後で画像として切り出すため、テキストを含まない領域を指定してください。
+グラフィック領域は、後で画像として切り出すため、テキストを含まない領域を指定してください。`
 
-【出力形式】
-必ず以下のJSON形式で出力してください。説明文は含めず、JSONのみを返してください。
-
-{
-  "backgroundColor": "FFFFFF",
-  "textElements": [
-    {
-      "content": "テキスト内容",
-      "x": 10,
-      "y": 5,
-      "width": 80,
-      "height": 15,
-      "fontSize": 8,
-      "fontWeight": "bold",
-      "fontStyle": "sans-serif",
-      "color": "333333",
-      "align": "center",
-      "role": "title"
-    }
-  ],
-  "graphicRegions": [
-    {
-      "description": "グラフィックの説明",
-      "x": 20,
-      "y": 30,
-      "width": 60,
-      "height": 50
-    }
-  ],
-  "slideTitle": "スライドタイトル"
-}`
+// 構造化出力用のJSONスキーマ
+const slideAnalysisJsonSchema = z.toJSONSchema(SlideAnalysisSchema)
 
 /**
  * BlobをBase64文字列に変換
@@ -242,7 +214,7 @@ export async function analyzeSlide(
       // Gemini APIクライアントを初期化
       const ai = new GoogleGenAI({ apiKey })
 
-      // API呼び出し
+      // API呼び出し（構造化出力を使用）
       const response = await ai.models.generateContent({
         model,
         contents: {
@@ -260,6 +232,8 @@ export async function analyzeSlide(
         },
         config: {
           abortSignal: signal,
+          responseMimeType: 'application/json',
+          responseJsonSchema: slideAnalysisJsonSchema,
         },
       })
 
@@ -269,20 +243,14 @@ export async function analyzeSlide(
       }
 
       // レスポンスからテキストを抽出
-      const candidates = response.candidates
-      if (!candidates || candidates.length === 0) {
+      const responseText = response.text
+      if (!responseText) {
         throw new Error('解析結果が取得できませんでした')
       }
 
-      const parts = candidates[0]?.content?.parts
-      const textPart = parts?.find((p) => p.text)
-
-      if (!textPart?.text) {
-        throw new Error('解析結果のテキストが取得できませんでした')
-      }
-
-      // JSONパースとバリデーション
-      const analysis = parseJsonResponse(textPart.text)
+      // 構造化出力なのでJSONは構文的に正しいことが保証されている
+      // Zodでバリデーション（値の意味的な検証）
+      const analysis = SlideAnalysisSchema.parse(JSON.parse(responseText))
 
       // 使用量情報を取得
       const usageMetadata = response.usageMetadata
