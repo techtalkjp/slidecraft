@@ -679,3 +679,71 @@ useEffectでUIの状態変化（フラグ）に反応するのは典型的なア
 ### 成果物
 
 - `app/routes/_app/projects/$projectId/edit/+/components/pptx-export-dialog.tsx` - モデルボタンの無効化条件変更、再解析ボタン追加
+
+---
+
+## PPTXエクスポートボタンのマジカルエフェクト追加
+
+### ユーザー指示
+
+PPTXエクスポートボタンをマジカルな感じでエフェクトつけて目立たせたい。見た目だけ。マーケティング的な要件。
+
+### ユーザー意図
+
+新機能であるPPTXエクスポートの存在をユーザーに視覚的にアピールしたい。
+
+### 作業内容
+
+CSSのみでグラデーションボーダーエフェクトを実装した。ボタンを`group`でラップし、疑似的なグラデーションボーダーを作成。
+
+```tsx
+<div className="group relative">
+  {/* グラデーションボーダー */}
+  <div className="absolute -inset-0.5 rounded-md bg-linear-to-r from-pink-500 via-purple-500 to-blue-500 opacity-75 blur-sm transition-all duration-500 group-hover:opacity-100 group-hover:blur-md" />
+  <Button
+    onClick={handleOpenPptxDialog}
+    size="sm"
+    className="relative w-full bg-white text-slate-700 hover:bg-slate-50"
+  >
+    <FileSpreadsheet className="mr-2 h-4 w-4" />
+    PPTXエクスポート
+  </Button>
+</div>
+```
+
+エフェクトの構成：
+- ピンク → パープル → ブルーのグラデーション
+- `blur-sm`で微かなグロー効果
+- ホバー時に`blur-md`で輝きが増す
+- `transition-all duration-500`でスムーズなアニメーション
+
+TailwindCSS v4では`bg-gradient-to-r`より`bg-linear-to-r`が推奨されているため、後者を使用。
+
+### 成果物
+
+- `app/routes/_app/projects/$projectId/edit/+/control-panel.tsx` - グラデーションボーダーエフェクト追加
+
+---
+
+## デフォルトモデルとボタン順序の変更
+
+### ユーザー指示
+
+PPTXエクスポート時のデフォルトをGemini 3 Proにしたい。ボタンを左にして。
+
+### ユーザー意図
+
+高精度なGemini 3 Proをデフォルトにし、UIでも優先表示したい。
+
+### 作業内容
+
+2つの変更を実施。
+
+1. `DEFAULT_MODEL`を`gemini-2.5-flash`から`gemini-3-pro-preview`に変更
+2. `ANALYSIS_MODELS`オブジェクトの順序を変更し、Gemini 3 Proを先頭に配置
+
+JavaScriptオブジェクトのプロパティ列挙順は挿入順が保持されるため、オブジェクト定義の順序を変えることでUI上のボタン順序も変わる。
+
+### 成果物
+
+- `app/lib/slide-analyzer.client.ts` - デフォルトモデル変更、モデル順序変更

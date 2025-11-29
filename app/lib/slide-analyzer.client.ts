@@ -18,21 +18,21 @@ const MODEL_PRICING: Record<string, { input: number; output: number }> = {
 
 // 利用可能なモデル
 export const ANALYSIS_MODELS = {
-  'gemini-2.5-flash': {
-    id: 'gemini-2.5-flash',
-    name: 'Gemini 2.5 Flash',
-    estimatedCostJpy: 0.5, // 概算コスト（円、実際はトークン数で変動）
-  },
   'gemini-3-pro-preview': {
     id: 'gemini-3-pro-preview',
     name: 'Gemini 3 Pro',
     estimatedCostJpy: 3, // 概算コスト（円、実際はトークン数で変動）
   },
+  'gemini-2.5-flash': {
+    id: 'gemini-2.5-flash',
+    name: 'Gemini 2.5 Flash',
+    estimatedCostJpy: 0.5, // 概算コスト（円、実際はトークン数で変動）
+  },
 } as const
 
 export type AnalysisModelId = keyof typeof ANALYSIS_MODELS
 
-export const DEFAULT_MODEL: AnalysisModelId = 'gemini-2.5-flash'
+export const DEFAULT_MODEL: AnalysisModelId = 'gemini-3-pro-preview'
 
 /**
  * トークン数からコストを計算（USD）

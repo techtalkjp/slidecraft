@@ -184,15 +184,18 @@ export function ControlPanel({
             </h3>
           </div>
           <div className="space-y-3 p-4">
-            <Button
-              onClick={handleOpenPptxDialog}
-              size="sm"
-              variant="outline"
-              className="w-full"
-            >
-              <FileSpreadsheet className="mr-2 h-4 w-4" />
-              PPTXエクスポート
-            </Button>
+            <div className="group relative">
+              {/* グラデーションボーダー */}
+              <div className="absolute -inset-0.5 rounded-md bg-linear-to-r from-pink-500 via-purple-500 to-blue-500 opacity-75 blur-sm transition-all duration-500 group-hover:opacity-100 group-hover:blur-md" />
+              <Button
+                onClick={handleOpenPptxDialog}
+                size="sm"
+                className="relative w-full bg-white text-slate-700 hover:bg-slate-50"
+              >
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                PPTXエクスポート
+              </Button>
+            </div>
             <p className="text-xs text-slate-500">
               現在のスライドを編集可能なPowerPoint形式でダウンロード
             </p>
