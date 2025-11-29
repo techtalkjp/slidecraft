@@ -31,13 +31,12 @@ function pctToInches(pct: number, dimension: 'width' | 'height'): number {
  * LLMが出力するfontSizeはスライド高さに対するパーセンテージ。
  * これをPPTXスライドの高さ（405pt）に対するptに変換。
  *
- * 補正係数1.2を適用：LLMがテキストの見た目の高さ（x-height基準）で
- * 推定する傾向があるため、実際のフォントサイズより控えめになりがち。
+ * 構造化出力により精度が向上したため、補正係数は1.0（補正なし）。
  */
 function fontSizePctToPt(fontSizePct: number): number {
   // PPTXスライドの高さ（pt）: 5.625インチ * 72pt/インチ = 405pt
   const slideHeightPt = SLIDE_HEIGHT * 72
-  const scaleFactor = 1.2 // LLMの推定傾向を補正
+  const scaleFactor = 1.0 // 補正なし（構造化出力により精度向上）
   return Math.round((fontSizePct / 100) * slideHeightPt * scaleFactor)
 }
 

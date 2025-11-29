@@ -497,3 +497,45 @@ CodeRabbitAIのレビュー指摘にも対応した。
 - `app/lib/graphic-extractor.client.ts` - percentToPixelをexport
 - `app/routes/_app/projects/$projectId/edit/+/hooks/use-pptx-export.ts` - AbortError時の状態リセット
 - `app/lib/pptx-export.test.ts` - ユニットテスト追加（新規）
+
+---
+
+## Gemini構造化出力の導入とフォントサイズ補正の調整
+
+### ユーザー指示
+
+fontSizeスキーマの説明を「pt」から「スライド高さに対する割合%」に修正。Gemini APIの構造化出力機能を導入。フォントサイズ補正係数を1.0に変更。
+
+### ユーザー意図
+
+スキーマの説明とシステムプロンプトの整合性を取り、構造化出力によりJSON解析の信頼性を向上させたい。構造化出力で精度が上がったため、従来の補正が不要か検証したい。
+
+### 作業内容
+
+**fontSizeスキーマ説明の修正**
+
+`slide-analysis.ts`のfontSizeフィールドの`.describe()`を「フォントサイズ（pt）」から「フォントサイズ（スライド高さに対する割合%）」に変更。システムプロンプトの指示と一致させた。
+
+**Gemini構造化出力の導入**
+
+Gemini APIの構造化出力機能を実装した。従来はLLMがmarkdownブロック付きでJSONを返すことがあり、正規表現で抽出していた。構造化出力では`responseMimeType: 'application/json'`と`responseJsonSchema`を指定することで、APIが構文的に正しいJSONを保証する。
+
+当初`zod-to-json-schema`パッケージを導入したが、Zod v4と互換性がなかった。Zod v4には`z.toJSONSchema()`メソッドが組み込まれていることを発見し、外部パッケージなしで実装できた。
+
+変更点:
+
+- `import * as z from 'zod'`に変更（`z.toJSONSchema`使用のため）
+- `slideAnalysisJsonSchema = z.toJSONSchema(SlideAnalysisSchema)`でJSONスキーマ生成
+- API呼び出しに`config.responseMimeType`と`config.responseJsonSchema`を追加
+- システムプロンプトからJSON形式の指示を削除（スキーマの`.describe()`が自動的に含まれるため）
+- レスポンス処理を`parseJsonResponse`から直接`JSON.parse`に簡略化
+
+**フォントサイズ補正係数の変更**
+
+`pptx-generator.client.ts`の`fontSizePctToPt`関数で、`scaleFactor`を1.2から1.0に変更。構造化出力によりLLMの出力精度が向上したため、従来の補正が不要になった可能性を検証する。
+
+### 成果物
+
+- `app/lib/slide-analysis.ts` - fontSizeの説明を修正
+- `app/lib/slide-analyzer.client.ts` - 構造化出力対応、システムプロンプト簡素化
+- `app/lib/pptx-generator.client.ts` - scaleFactor を1.2から1.0に変更
