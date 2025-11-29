@@ -868,6 +868,7 @@ Gemini 3 Pro解析の目安コストを3円から8円に更新（実測値に基
 ### 成果物
 
 - `app/lib/rate-limiter.ts` - Upstashレート制限ユーティリティ
+- `app/lib/rate-limiter.test.ts` - レート制限のテスト
 - `app/routes/api/usage-log/index.tsx` - レート制限チェック追加
 - `app/lib/slide-analyzer.client.ts` - 目安コスト更新（3円→8円）
 - `package.json` - @upstash/ratelimit、@upstash/redis追加
@@ -878,3 +879,56 @@ Gemini 3 Pro解析の目安コストを3円から8円に更新（実測値に基
 
 - `UPSTASH_REDIS_REST_URL`
 - `UPSTASH_REDIS_REST_TOKEN`
+
+---
+
+## レート制限とAPIログ機能の改善
+
+### ユーザー指示
+
+レビュー指摘への対応。トークン集計の競合状態修正、本番環境でのレート制限必須化、エラーログへのコンテキスト追加、JSDoc追加、スキーマ共有化、未使用コード削除。
+
+### ユーザー意図
+
+コードの堅牢性、保守性、ドキュメント品質を向上させたい。
+
+### 作業内容
+
+**トークン集計の競合状態を修正**
+
+`gemini-api.client.ts`で並列リクエスト中に共有変数`totalInputTokens`/`totalOutputTokens`を直接加算していた。JavaScriptはシングルスレッドだが、非同期処理の完了タイミングによっては不正確な値になる可能性があった。
+
+各リクエストが`{ image, inputTokens, outputTokens }`を返すように変更し、`Promise.all()`完了後に`reduce()`で集計する方式に修正した。
+
+**本番環境でのレート制限必須化**
+
+`rate-limiter.ts`で環境変数がない場合に警告を出すだけだったのを、本番環境では起動時にエラーを投げるよう変更した。セキュリティ上重要な機能が設定ミスで無効化されるリスクを排除。
+
+**Retry-Afterヘッダーの追加**
+
+429レスポンス時にリセットまでの秒数を`Retry-After`ヘッダーで返すよう変更。クライアントが適切なリトライ間隔を知ることができる。
+
+**エラーログへのコンテキスト追加**
+
+`usage-log`エンドポイントのエラーハンドリングで、`userId`と`operation`をログに含めるよう変更。デバッグ時の原因特定が容易になる。
+
+**JSDoc追加**
+
+`api-usage-logger.ts`のインターフェースと関数に詳細なJSDocを追加。使用例も記載。
+
+**スキーマ共有化**
+
+`ApiUsageLogSchema`と`MAX_METADATA_SIZE`を`app/lib/api-usage-log-schema.ts`に抽出し、ルートとテストで共有するよう変更。重複定義によるドリフトを防止。
+
+**未使用コード削除**
+
+`api-usage-log-schema.ts`から未使用の`ApiUsageLogInput`型exportを削除。
+
+### 成果物
+
+- `app/lib/gemini-api.client.ts` - トークン集計の競合状態修正
+- `app/lib/rate-limiter.ts` - 本番環境での必須化
+- `app/lib/rate-limiter.test.ts` - テスト追加
+- `app/routes/api/usage-log/index.tsx` - Retry-Afterヘッダー、エラーログコンテキスト
+- `app/lib/api-usage-logger.ts` - JSDoc追加
+- `app/lib/api-usage-log-schema.ts` - スキーマ共有化、未使用コード削除
