@@ -163,10 +163,13 @@ export async function generatePptx(
   }
 
   // Blobとして出力（ブラウザ環境）
-  const blob = (await pptx.write({ outputType: 'blob' })) as Blob
+  const result = await pptx.write({ outputType: 'blob' })
+  if (!(result instanceof Blob)) {
+    throw new Error('PPTX生成に失敗しました: 出力がBlobではありません')
+  }
 
   return {
-    blob,
+    blob: result,
     fileName,
   }
 }
