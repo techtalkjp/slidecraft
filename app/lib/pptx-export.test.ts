@@ -50,7 +50,8 @@ describe('parseJsonResponse', () => {
   })
 
   it('```json マークダウンブロックからJSONを抽出できる', () => {
-    const input = '```json\n{"backgroundColor": "FFFFFF", "textElements": [], "graphicRegions": [], "slideTitle": "マークダウンスライド"}\n```'
+    const input =
+      '```json\n{"backgroundColor": "FFFFFF", "textElements": [], "graphicRegions": [], "slideTitle": "マークダウンスライド"}\n```'
     const result = parseJsonResponse(input)
     expect(result.backgroundColor).toBe('FFFFFF')
     expect(result.slideTitle).toBe('マークダウンスライド')
@@ -65,7 +66,9 @@ describe('parseJsonResponse', () => {
   })
 
   it('不正なJSONはエラーを投げる', () => {
-    expect(() => parseJsonResponse('{invalid json}')).toThrow('JSONパースエラー')
+    expect(() => parseJsonResponse('{invalid json}')).toThrow(
+      'JSONパースエラー',
+    )
   })
 
   it('スキーマに合わないJSONはバリデーションエラーを投げる', () => {
