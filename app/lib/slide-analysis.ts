@@ -56,7 +56,6 @@ export type SlideAnalysis = z.infer<typeof SlideAnalysisSchema>
 export interface ExtractedGraphic {
   region: GraphicRegion
   imageBlob: Blob
-  dataUrl: string
 }
 
 // 画像サイズ

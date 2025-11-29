@@ -6,6 +6,7 @@
  */
 
 import PptxGenJS from 'pptxgenjs'
+import { blobToDataUrl } from './graphic-extractor.client'
 import type {
   ExtractedGraphic,
   SlideAnalysis,
@@ -120,7 +121,9 @@ export async function generatePptx(
 
   // グラフィック要素を追加（テキストの下に配置するため先に追加）
   for (const graphic of graphics) {
-    const { region, dataUrl } = graphic
+    const { region, imageBlob } = graphic
+    // Blob から Data URL に遅延変換（メモリ効率向上）
+    const dataUrl = await blobToDataUrl(imageBlob)
     const base64Data = extractBase64FromDataUrl(dataUrl)
 
     if (base64Data) {

@@ -63,7 +63,7 @@ function createImageFromBlob(blob: Blob): Promise<HTMLImageElement> {
 /**
  * BlobをData URLに変換
  */
-function blobToDataUrl(blob: Blob): Promise<string> {
+export function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onloadend = () => {
@@ -139,12 +139,9 @@ export async function extractGraphicRegion(
     )
   })
 
-  const dataUrl = await blobToDataUrl(blob)
-
   return {
     region,
     imageBlob: blob,
-    dataUrl,
   }
 }
 
