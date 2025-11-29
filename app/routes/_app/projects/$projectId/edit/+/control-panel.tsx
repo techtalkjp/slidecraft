@@ -185,6 +185,7 @@ export function ControlPanel({
             <Button
               onClick={handleOpenPptxDialog}
               size="sm"
+              variant="outline"
               className="w-full"
             >
               <FileSpreadsheet className="mr-2 h-4 w-4" />
