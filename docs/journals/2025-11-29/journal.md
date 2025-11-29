@@ -793,3 +793,50 @@ APIエンドポイント`POST /api/usage-log`を作成し、クライアント�
 ### 改善提案
 
 ログが蓄積されたら、ダッシュボード画面を作成してコストの推移やユーザー別の利用状況を可視化できるとよい。また、見積もりロジックの精度向上のため、実際のトークン数と見積もりの比較分析も有用。
+
+---
+
+## APIコストログ機能のコードレビュー対応
+
+### ユーザー指示
+
+コードレビューで指摘された問題点への対応。セキュリティ、テストカバレッジ、コード重複、エラーハンドリングなど。
+
+### ユーザー意図
+
+本番運用に向けてコード品質を向上させ、保守性を高めたい。
+
+### 作業内容
+
+#### セキュリティ修正
+
+1. **入力バリデーション強化** - Zodスキーマで厳密な型・範囲チェックを追加。operation、model、各数値フィールドに適切な制約を設定。
+
+2. **認証必須化** - セッションがない場合は401エラーを返すように変更。匿名アクセスを禁止。
+
+3. **デフォルト値削除** - Zodスキーマからデフォルト値を削除し、すべてのフィールドを必須化。データ整合性を確保。
+
+#### テスト追加
+
+`app/routes/api/usage-log/index.test.ts`と`app/lib/api-usage-logger.test.ts`を作成。Zodスキーマのバリデーションテスト（有効/無効入力、境界値）とfire-and-forget loggerの動作テスト（非ブロッキング、エラー時の静かな失敗）を実装。
+
+#### コード重複解消
+
+モデル料金定義を`cost-calculator.ts`に一元化。`MODEL_PRICING`で全モデルの料金を管理し、`calculateTokenCost()`関数を提供。`slide-analyzer.client.ts`と`gemini-api.client.ts`から重複定義を削除し、統一関数を使用するように変更。
+
+#### 為替レートエラーハンドリング改善
+
+`getExchangeRate()`のフォールバック戦略を改善。API取得失敗時に期限切れキャッシュを優先的に使用し、キャッシュがない場合のみデフォルト値150を返すように変更。一時的なAPIエラーでも直近の実レートが使われるため、ログの精度が向上。
+
+#### パターン一貫性
+
+`gemini-api.client.ts`の為替レート取得を`.then()`チェーンからasync/awaitパターンに変更し、`slide-analyzer.client.ts`と同じパターンに統一。保守性向上。
+
+### 成果物
+
+- `app/routes/api/usage-log/index.tsx` - バリデーション強化、認証必須化、デフォルト値削除
+- `app/routes/api/usage-log/index.test.ts` - スキーマバリデーションテスト
+- `app/lib/api-usage-logger.test.ts` - ロガーテスト
+- `app/lib/cost-calculator.ts` - 料金定義一元化、為替レートフォールバック改善
+- `app/lib/slide-analyzer.client.ts` - 統一料金計算関数を使用
+- `app/lib/gemini-api.client.ts` - 統一料金計算関数を使用、async/awaitパターンに統一
