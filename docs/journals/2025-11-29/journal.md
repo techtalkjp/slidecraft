@@ -471,3 +471,14 @@ PPTXエクスポート機能のコードレビュー指摘事項を順次修正�
 - `app/lib/graphic-extractor.client.ts` - URL解放タイミング修正、パラメータ簡略化、並列処理
 - `app/lib/slide-analysis.ts` - `dataUrl`フィールド削除
 - `app/routes/_app/projects/$projectId/edit/+/components/pptx-export-dialog.tsx` - アクセシビリティ属性追加
+
+CodeRabbitAIのレビュー指摘にも対応した。
+
+- **AbortSignalをgenerateContentに渡す**: `config: { abortSignal: signal }`を追加し、リクエスト途中でのキャンセルを可能に。従来は手動で`signal?.aborted`をチェックしていたが、ネットワークリクエスト自体は中断できなかった。
+
+- **画像読み込み失敗時のユーザーフィードバック**: `handleOpenPptxDialog`のcatchブロックで`toast.error()`を呼び出し、ユーザーにエラーを通知。
+
+### 成果物（追加）
+
+- `app/lib/slide-analyzer.client.ts` - AbortSignal対応
+- `app/routes/_app/projects/$projectId/edit/+/control-panel.tsx` - toast.error追加
