@@ -40,6 +40,11 @@ export async function action({ request }: Route.ActionArgs) {
     // レート制限チェック（ユーザーIDベース）
     const rateLimit = await checkRateLimit(`usage-log:${userId}`)
     if (!rateLimit.success) {
+      // リセットまでの秒数を計算（最小1秒）
+      const retryAfterSeconds = Math.max(
+        1,
+        Math.ceil((rateLimit.reset - Date.now()) / 1000),
+      )
       return data(
         { error: 'Too many requests' },
         {
@@ -48,6 +53,7 @@ export async function action({ request }: Route.ActionArgs) {
             'X-RateLimit-Limit': String(rateLimit.limit),
             'X-RateLimit-Remaining': String(rateLimit.remaining),
             'X-RateLimit-Reset': String(rateLimit.reset),
+            'Retry-After': String(retryAfterSeconds),
           },
         },
       )
