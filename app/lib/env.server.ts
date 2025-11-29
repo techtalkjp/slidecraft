@@ -22,7 +22,8 @@ const schema = z.object({
   BETTER_AUTH_SECRET: isStrictEnv
     ? z.string().min(32, 'BETTER_AUTH_SECRET must be at least 32 characters')
     : z.string().optional(),
-  BETTER_AUTH_URL: isStrictEnv ? z.url() : z.url().optional(),
+  // BETTER_AUTH_URL は VERCEL_URL からフォールバック可能なため常に optional
+  BETTER_AUTH_URL: z.url().optional(),
   BETTER_AUTH_TRUSTED_ORIGINS: z.string().optional(),
   // Cron
   CRON_SECRET: isStrictEnv ? z.string().min(1) : z.string().optional(),
