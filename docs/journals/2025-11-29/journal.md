@@ -248,3 +248,33 @@ Gemini APIはクライアントサイドから直接呼び出す。既存のス�
 ### 教訓
 
 LLMへの指示でフォントサイズの「単位」を曖昧にすると、解釈がぶれてスケーリング調整が泥沼化する。位置やサイズがパーセンテージならフォントサイズもパーセンテージで統一すべきだった。プロンプト設計段階で単位系を明確に揃えることが重要。
+
+---
+
+## フォントサイズ補正係数の追加
+
+### ユーザー指示
+
+PPTXでエクスポートするとフォントサイズが元画像より2割ほど小さい。
+
+### ユーザー意図
+
+PPTXのフォントサイズを元画像と同等にしたい。
+
+### 作業内容
+
+パーセンテージベースのフォントサイズ変換（405pt基準）は正しく機能していたが、出力が一貫して2割小さかった。原因として、LLMがテキストの見た目の高さ（x-height、小文字xの高さ）を基準に推定している可能性を特定した。フォントのem-square（フルサイズ）はx-heightより大きいため、パーセンテージが控えめになる。
+
+`fontSizePctToPt`関数に補正係数1.2を追加した。
+
+```typescript
+function fontSizePctToPt(fontSizePct: number): number {
+  const slideHeightPt = SLIDE_HEIGHT * 72
+  const scaleFactor = 1.2 // LLMの推定傾向を補正
+  return Math.round((fontSizePct / 100) * slideHeightPt * scaleFactor)
+}
+```
+
+### 成果物
+
+- `app/lib/pptx-generator.client.ts` - 補正係数1.2を追加
