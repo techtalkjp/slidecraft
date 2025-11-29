@@ -6,6 +6,10 @@ import tsconfigPaths from 'vite-tsconfig-paths'
 
 export default defineConfig(({ isSsrBuild }) => ({
   plugins: [devtoolsJson(), tailwindcss(), reactRouter(), tsconfigPaths()],
+  // VERCEL_ENV をクライアントに公開（GA制御用）
+  define: {
+    'import.meta.env.VERCEL_ENV': JSON.stringify(process.env.VERCEL_ENV),
+  },
   ssr: {
     external: ['@prisma/client/runtime/client'],
   },

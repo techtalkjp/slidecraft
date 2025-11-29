@@ -32,7 +32,9 @@ export const links: Route.LinksFunction = () => [
 export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation()
   const canonicalUrl = `https://www.slidecraft.work${location.pathname}`
-  const isProduction = import.meta.env.PROD
+  // GAは本番環境（VERCEL_ENV === 'production'）でのみ有効化
+  // Preview環境やローカル開発では無効（vite.config.tsでクライアントに公開）
+  const isProduction = import.meta.env.VERCEL_ENV === 'production'
 
   return (
     <html lang="ja" suppressHydrationWarning>

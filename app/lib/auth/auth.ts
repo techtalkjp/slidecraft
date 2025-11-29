@@ -24,13 +24,7 @@ function getBaseURL(): string | undefined {
 
 const baseURL = getBaseURL()
 
-// trustedOrigins の決定ロジック:
-// 1. BETTER_AUTH_TRUSTED_ORIGINS が設定されていればそれを使用
-// 2. baseURL が設定されていれば（VERCEL_URL からの自動生成含む）それを使用
-// 3. NODE_ENV === 'production' の場合は空配列（明示的な設定が必要）
-// 4. それ以外（ローカル開発）は localhost:5173
-// NOTE: ここでは NODE_ENV を使用。VERCEL_ENV ではなく NODE_ENV を使うのは、
-// ローカルで NODE_ENV=production をテストする場合に厳格な挙動を確認するため。
+// trustedOrigins: 明示設定 > baseURL > 本番は空配列 > 開発はlocalhost
 const trustedOrigins = process.env.BETTER_AUTH_TRUSTED_ORIGINS
   ? process.env.BETTER_AUTH_TRUSTED_ORIGINS.split(',')
       .map((origin) => origin.trim())
