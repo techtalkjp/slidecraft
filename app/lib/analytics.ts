@@ -10,8 +10,13 @@ declare global {
 }
 
 // Helper to check if analytics should be enabled
+// 本番環境（VERCEL_ENV === 'production'）でのみ有効化
 function isAnalyticsEnabled(): boolean {
-  return import.meta.env.PROD && typeof window !== 'undefined' && !!window.gtag
+  return (
+    import.meta.env.VERCEL_ENV === 'production' &&
+    typeof window !== 'undefined' &&
+    !!window.gtag
+  )
 }
 
 export function trackEvent(
@@ -122,7 +127,10 @@ export function trackFirstGenerationCompleted(
 }
 
 export function trackRepeatUser() {
-  if (!import.meta.env.PROD || typeof window === 'undefined') {
+  if (
+    import.meta.env.VERCEL_ENV !== 'production' ||
+    typeof window === 'undefined'
+  ) {
     return
   }
 
