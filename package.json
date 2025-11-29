@@ -34,6 +34,8 @@
     "@prisma/client": "7.0.1",
     "@react-router/node": "7.9.6",
     "@react-router/serve": "7.9.6",
+    "@upstash/ratelimit": "2.0.7",
+    "@upstash/redis": "1.35.7",
     "@vercel/react-router": "1.2.3",
     "better-auth": "1.4.3",
     "class-variance-authority": "0.7.1",

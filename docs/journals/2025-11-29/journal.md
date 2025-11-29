@@ -840,3 +840,41 @@ APIエンドポイント`POST /api/usage-log`を作成し、クライアント�
 - `app/lib/cost-calculator.ts` - 料金定義一元化、為替レートフォールバック改善
 - `app/lib/slide-analyzer.client.ts` - 統一料金計算関数を使用
 - `app/lib/gemini-api.client.ts` - 統一料金計算関数を使用、async/awaitパターンに統一
+
+---
+
+## Upstashレート制限の追加
+
+### ユーザー指示
+
+usage-log APIにレート制限がない。匿名ユーザーでも書けてしまうので危険度が高い。Vercel KVか何かで簡単に対策したい。
+
+### ユーザー意図
+
+APIエンドポイントへの濫用を防ぎ、DBが不正リクエストで埋め尽くされるのを防止したい。
+
+### 作業内容
+
+Vercel KVは2024年12月にサンセットされたため、Upstash Redisを直接使用する方式を採用。Vercel Marketplace経由でUpstash KVをプロビジョニングすると、環境変数が自動設定される。
+
+`@upstash/ratelimit`と`@upstash/redis`パッケージを追加し、`rate-limiter.ts`を新規作成。スライディングウィンドウ方式で1分間に30リクエストまでに制限。
+
+`/api/usage-log`エンドポイントに認証後のレート制限チェックを追加。制限超過時は429ステータスとX-RateLimitヘッダーを返す。
+
+開発環境では環境変数が未設定のためレート制限がスキップされる。本番環境で環境変数がない場合のみ警告ログを出力するよう条件を追加。
+
+Gemini 3 Pro解析の目安コストを3円から8円に更新（実測値に基づく調整）。
+
+### 成果物
+
+- `app/lib/rate-limiter.ts` - Upstashレート制限ユーティリティ
+- `app/routes/api/usage-log/index.tsx` - レート制限チェック追加
+- `app/lib/slide-analyzer.client.ts` - 目安コスト更新（3円→8円）
+- `package.json` - @upstash/ratelimit、@upstash/redis追加
+
+### 環境変数
+
+本番環境では以下の環境変数が必要（Vercel Marketplace経由で自動設定）。
+
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`

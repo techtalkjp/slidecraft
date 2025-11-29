@@ -2,6 +2,7 @@ import { data } from 'react-router'
 import * as z from 'zod'
 import { auth } from '~/lib/auth/auth'
 import { prisma } from '~/lib/db/prisma'
+import { checkRateLimit } from '~/lib/rate-limiter'
 import type { Route } from './+types'
 
 // メタデータの最大サイズ（10KB）
@@ -35,6 +36,22 @@ export async function action({ request }: Route.ActionArgs) {
       return data({ error: 'Unauthorized' }, { status: 401 })
     }
     const userId = session.user.id
+
+    // レート制限チェック（ユーザーIDベース）
+    const rateLimit = await checkRateLimit(`usage-log:${userId}`)
+    if (!rateLimit.success) {
+      return data(
+        { error: 'Too many requests' },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': String(rateLimit.limit),
+            'X-RateLimit-Remaining': String(rateLimit.remaining),
+            'X-RateLimit-Reset': String(rateLimit.reset),
+          },
+        },
+      )
+    }
 
     const body = await request.json()
 
