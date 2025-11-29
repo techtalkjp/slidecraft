@@ -1,5 +1,6 @@
 import { FileSpreadsheet } from 'lucide-react'
 import { useCallback, useState } from 'react'
+import { toast } from 'sonner'
 import { ApiKeyDialog } from '~/components/api-key-dialog'
 import { Button } from '~/components/ui/button'
 import { loadCurrentSlideImage } from '~/lib/slides-repository.client'
@@ -99,6 +100,7 @@ export function ControlPanel({
       setShowPptxDialog(true)
     } catch (error) {
       console.error('スライド画像の読み込みに失敗:', error)
+      toast.error('スライド画像の読み込みに失敗しました')
     }
   }, [projectId, slide])
 

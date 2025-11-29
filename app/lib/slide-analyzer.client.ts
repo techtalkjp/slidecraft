@@ -254,6 +254,9 @@ export async function analyzeSlide(
             },
           ],
         },
+        config: {
+          abortSignal: signal,
+        },
       })
 
       // キャンセルチェック
