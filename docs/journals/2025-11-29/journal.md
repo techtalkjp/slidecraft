@@ -941,3 +941,30 @@ Gemini 3 Pro解析の目安コストを3円から8円に更新（実測値に基
 - `app/routes/api/usage-log/index.tsx` - Retry-Afterヘッダー、エラーログコンテキスト
 - `app/lib/api-usage-logger.ts` - JSDoc追加
 - `app/lib/api-usage-log-schema.ts` - スキーマ共有化、未使用コード削除
+
+---
+
+## Vercel Preview環境の環境変数対応
+
+### ユーザー指示
+
+Vercel Preview環境でinternal server errorになる問題を修正。環境変数が未設定でも動作するようにしたい。
+
+### ユーザー意図
+
+PRごとに自動生成されるPreview環境で、手動で環境変数を設定せずにテストできるようにしたい。
+
+### 作業内容
+
+Vercel Preview環境では`NODE_ENV=production`でビルドされるため、従来の`NODE_ENV`ベースの判定では本番環境と区別できなかった。`VERCEL_ENV`環境変数を使用することで、`production`/`preview`/`development`を正しく区別できるようになった。
+
+`env.server.ts`で`isProduction`を`isStrictEnv`（`VERCEL_ENV === 'production'`）に変更し、Preview環境では`BETTER_AUTH_SECRET`、`BETTER_AUTH_URL`、`CRON_SECRET`をoptionalに。
+
+`auth.ts`では`BETTER_AUTH_URL`が未設定の場合に`VERCEL_URL`から自動生成するフォールバックを追加。Vercelは各デプロイメントに`VERCEL_URL`を自動設定するため、Preview環境でも認証が動作する。`BETTER_AUTH_SECRET`も開発用のフォールバック値を使用するよう変更。セッションは再起動で無効化されるが、Preview環境では問題ない。
+
+`trustedOrigins`も`baseURL`から自動設定するよう変更し、CORS設定も自動化。
+
+### 成果物
+
+- `app/lib/env.server.ts` - VERCEL_ENVベースの厳格チェック
+- `app/lib/auth/auth.ts` - 環境変数フォールバック、trustedOrigins自動設定
