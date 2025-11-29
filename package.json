@@ -4,9 +4,9 @@
   "type": "module",
   "pnpm": {
     "onlyBuiltDependencies": [
-      "@prisma/engines",
-      "better-sqlite3",
-      "prisma"
+      "@tailwindcss/oxide",
+      "core-js",
+      "esbuild"
     ]
   },
   "scripts": {
