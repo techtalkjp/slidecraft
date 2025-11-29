@@ -4,15 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 const mockLimit = vi.fn()
 
 vi.mock('@upstash/redis', () => ({
-  Redis: class MockRedis {
-    constructor() {}
-  },
+  Redis: class MockRedis {},
 }))
 
 vi.mock('@upstash/ratelimit', () => ({
   Ratelimit: class MockRatelimit {
     limit = mockLimit
-    constructor() {}
     static slidingWindow() {
       return {}
     }
