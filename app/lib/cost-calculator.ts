@@ -81,9 +81,11 @@ let exchangeRateCache: {
 } | null = null
 
 const CACHE_DURATION = 24 * 60 * 60 * 1000 // 24時間
+const DEFAULT_EXCHANGE_RATE = 150 // 初回エラー時のフォールバック
 
 /**
  * USD/JPY為替レートを取得（キャッシュ付き）
+ * エラー時は期限切れキャッシュ → デフォルト値の順でフォールバック
  */
 export async function getExchangeRate(): Promise<number> {
   // キャッシュが有効ならそれを返す
@@ -111,12 +113,12 @@ export async function getExchangeRate(): Promise<number> {
       return rate
     }
 
-    // レートが取得できない場合はデフォルト値
-    return 150 // 大体の値
+    // レートが取得できない場合は期限切れキャッシュ or デフォルト値
+    return exchangeRateCache?.rate ?? DEFAULT_EXCHANGE_RATE
   } catch (error) {
     console.error('為替レート取得エラー:', error)
-    // エラー時はデフォルト値
-    return 150
+    // エラー時は期限切れキャッシュ or デフォルト値
+    return exchangeRateCache?.rate ?? DEFAULT_EXCHANGE_RATE
   }
 }
 
