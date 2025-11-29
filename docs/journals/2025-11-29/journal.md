@@ -363,3 +363,34 @@ ImageCanvasの`bg-slate-100/50`がMainPreviewの`bg-slate-50`と重なって濃�
 - `app/routes/_app/projects/$projectId/edit/+/sidebar.tsx` - `bg-slate-100`に変更
 - `app/routes/_app/projects/$projectId/edit/+/main-preview.tsx` - 背景色削除
 - `app/routes/_app/projects/$projectId/edit/+/components/image-canvas.tsx` - `bg-slate-100`に変更（透過なし）
+
+---
+
+## PDFエクスポートのファイルサイズ改善
+
+### ユーザー指示
+
+元が10MBのPDFをアップロードして、PDF書き出しすると、150MBになっちゃう。
+
+### ユーザー意図
+
+PDF出力のファイルサイズを元のPDFと同程度に抑えたい。
+
+### 作業内容
+
+PDF生成時にjsPDFの`addImage`で`'PNG'`形式を使用していたことが原因。PNG形式はロスレス圧縮のためファイルサイズが大きくなる。
+
+`blobToJpegDataUrl`関数を新規作成し、Canvas APIを使ってBlobをJPEG形式（圧縮率0.85）のData URLに変換するようにした。処理の流れは以下の通り。
+
+1. BlobからObject URLを作成
+2. Imageオブジェクトに読み込み
+3. Canvasに白背景を描画（透過対策）
+4. 画像をCanvasに描画
+5. `canvas.toDataURL('image/jpeg', 0.85)`でJPEG圧縮
+6. Object URLを解放（メモリリーク防止）
+
+`generatePdfFromSlides`関数で使用していた未定義の`blobToDataUrl`呼び出しを`blobToJpegDataUrl`に変更し、`pdf.addImage`の形式引数を`'PNG'`から`'JPEG'`に変更した。
+
+### 成果物
+
+- `app/lib/pdf-generator.client.ts` - JPEG圧縮によるPDFサイズ削減

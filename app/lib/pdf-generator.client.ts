@@ -10,16 +10,33 @@ import { loadCurrentSlideImage } from './slides-repository.client'
 import type { Slide } from './types'
 
 /**
- * BlobをData URLに変換
+ * BlobをJPEG Data URLに変換（圧縮）
  */
-function blobToDataUrl(blob: Blob): Promise<string> {
+function blobToJpegDataUrl(blob: Blob, quality = 0.85): Promise<string> {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      resolve(reader.result as string)
+    const img = new Image()
+    const url = URL.createObjectURL(blob)
+    img.onload = () => {
+      URL.revokeObjectURL(url)
+      const canvas = document.createElement('canvas')
+      canvas.width = img.width
+      canvas.height = img.height
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        reject(new Error('Canvas context not available'))
+        return
+      }
+      // 白背景を描画（透過対策）
+      ctx.fillStyle = '#FFFFFF'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      ctx.drawImage(img, 0, 0)
+      resolve(canvas.toDataURL('image/jpeg', quality))
     }
-    reader.onerror = reject
-    reader.readAsDataURL(blob)
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
+      reject(new Error('Failed to load image'))
+    }
+    img.src = url
   })
 }
 
@@ -59,7 +76,7 @@ export async function generatePdfFromSlides(
   try {
     // 最初のスライドの画像を読み込んでサイズを取得
     const firstSlideImage = await loadCurrentSlideImage(projectId, slides[0])
-    const firstSlideDataUrl = await blobToDataUrl(firstSlideImage)
+    const firstSlideDataUrl = await blobToJpegDataUrl(firstSlideImage)
     const { width, height } = await getImageDimensions(firstSlideDataUrl)
 
     // PDFのページサイズを計算
@@ -88,17 +105,17 @@ export async function generatePdfFromSlides(
 
       const slide = slides[i]
 
-      // スライド画像を読み込む
+      // スライド画像を読み込む（JPEG圧縮でファイルサイズ削減）
       const slideImage = await loadCurrentSlideImage(projectId, slide)
-      const slideDataUrl = await blobToDataUrl(slideImage)
+      const slideDataUrl = await blobToJpegDataUrl(slideImage)
 
       // 2ページ目以降は新しいページを追加
       if (i > 0) {
         pdf.addPage([pageWidthMm, pageHeightMm], aspectRatio > 1 ? 'l' : 'p')
       }
 
-      // 画像を追加（ページ全体に配置）
-      pdf.addImage(slideDataUrl, 'PNG', 0, 0, pageWidthMm, pageHeightMm)
+      // 画像を追加（ページ全体に配置、JPEG形式）
+      pdf.addImage(slideDataUrl, 'JPEG', 0, 0, pageWidthMm, pageHeightMm)
     }
 
     // PDFをBlobとして出力
