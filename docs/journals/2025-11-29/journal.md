@@ -968,3 +968,44 @@ Vercel Preview環境では`NODE_ENV=production`でビルドされるため、従
 
 - `app/lib/env.server.ts` - VERCEL_ENVベースの厳格チェック
 - `app/lib/auth/auth.ts` - 環境変数フォールバック、trustedOrigins自動設定
+
+---
+
+## Vercel Preview環境対応のCodeRabbitレビュー指摘対応
+
+### ユーザー指示
+
+CodeRabbitのレビュー指摘に対応。セキュリティ問題、型安全性、一貫性の改善。
+
+### ユーザー意図
+
+PRのレビュー指摘を解消し、コードの品質とセキュリティを向上させたい。
+
+### 作業内容
+
+**セキュリティ: フォールバックシークレットの削除**
+
+`auth.ts`の`getSecret()`関数にあったハードコードされたフォールバックシークレット`'local-development-secret-do-not-use-in-production'`を削除した。Preview環境でも`env.server.ts`のバリデーションが先に実行されるため、このフォールバックに到達することはないが、セキュリティ上のリスクを排除するため削除。ローカル開発では`better-auth`が内部でシークレットを生成する。
+
+**未検証環境変数の修正**
+
+`env.server.ts`で`VERCEL_ENV`をZodスキーマ構築前に参照していた問題を修正。`vercelEnvSchema.safeParse()`で事前にバリデーションし、成功時のみ値を使用するよう変更した。
+
+**cronエンドポイントの認証判定の一貫性**
+
+`cleanup-sessions/index.tsx`で`NODE_ENV === 'production'`を使用していたのを`VERCEL_ENV`ベースに変更。`env.server.ts`の`isStrictEnv`と同じロジックで、Production/Preview両環境で認証を要求するよう統一した。
+
+**.env.exampleの更新**
+
+`VERCEL_ENV`と`VERCEL_URL`がVercelによって自動設定されることを明記。各環境変数がproduction/previewで必須かどうか、`BETTER_AUTH_URL`がpreviewでは自動導出されることを記載。Upstash Redis環境変数も追加。
+
+**型安全性の向上**
+
+`env.server.ts`の手動定義`Env`インターフェースを`z.infer<typeof schema>`に置き換え、スキーマと型定義の乖離を防止した。
+
+### 成果物
+
+- `app/lib/auth/auth.ts` - フォールバックシークレット削除
+- `app/lib/env.server.ts` - VERCEL_ENV事前バリデーション、z.infer型導出
+- `app/routes/api/cron/cleanup-sessions/index.tsx` - VERCEL_ENVベース認証判定
+- `.env.example` - Vercel環境変数ドキュメント追加
