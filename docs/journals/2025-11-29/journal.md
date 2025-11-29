@@ -278,3 +278,55 @@ function fontSizePctToPt(fontSizePct: number): number {
 ### 成果物
 
 - `app/lib/pptx-generator.client.ts` - 補正係数1.2を追加
+
+---
+
+## PPTXエクスポートボタンの配置改善
+
+### ユーザー指示
+
+PPTXエクスポートボタンを右ペイン（ControlPanel）に移動。スライドエクスポートセクションのヘッダースタイルを他セクションと統一。PPTX発見しづらい問題を解消。
+
+### ユーザー意図
+
+PPTXエクスポートボタンをスライド編集フローの文脈に配置し、発見しやすくしたい。
+
+### 作業内容
+
+PPTXエクスポートボタンをEditorActions（ヘッダー）からControlPanel（右ペイン）に移動した。
+
+スライドエクスポートセクションのヘッダーに`border-y border-slate-200`を追加し、「スライド修正」「スライド一覧」と同じスタイルに統一した。
+
+背景色を`bg-slate-50`に変更してみたが「微妙」とのフィードバックで`bg-white`に戻した。
+
+ヘッダーにアイコンボタンを追加する案も試したが「アイコンだけだとわからん」とのことで却下。
+
+ボタンの視認性を上げるため、PDFボタンを`variant="outline"`に変更し、PPTXボタンをデフォルト（primary）に変更した。
+
+最終的に、スライドエクスポートセクションを下部に固定し、スライド修正セクションを残りの高さで内部スクロール可能にした。レイアウト構造は以下の通り。
+
+```tsx
+<div className="flex h-full flex-col bg-white">
+  {/* スライド修正ヘッダー - shrink-0で固定 */}
+  <div className="flex h-8 shrink-0 items-center border-b ...">
+    <h2>スライド修正</h2>
+  </div>
+
+  {/* スライド修正コンテンツ - flex-1 + min-h-0でスクロール可能 */}
+  <div className="min-h-0 flex-1 overflow-y-auto p-4">
+    <GenerationControlForm ... />
+    <CandidateImagesGrid ... />
+  </div>
+
+  {/* スライドエクスポート - shrink-0で下部固定 */}
+  <div className="shrink-0 border-t border-slate-200">
+    <div>スライドエクスポート</div>
+    <Button>PPTXエクスポート</Button>
+  </div>
+</div>
+```
+
+### 成果物
+
+- `app/routes/_app/projects/$projectId/edit/+/control-panel.tsx` - PPTXエクスポートセクション追加、下部固定レイアウト
+- `app/routes/_app/projects/$projectId/edit/+/editor-actions.tsx` - PDFボタンを`variant="outline"`に変更

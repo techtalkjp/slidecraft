@@ -136,11 +136,13 @@ export function ControlPanel({
       />
 
       <div className="flex h-full flex-col bg-white">
-        <div className="flex h-8 items-center border-b px-3">
+        {/* スライド修正ヘッダー */}
+        <div className="flex h-8 shrink-0 items-center border-b border-slate-200 bg-white px-3">
           <h2 className="text-xs font-semibold text-slate-700">スライド修正</h2>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4">
+        {/* スライド修正コンテンツ（スクロール可能） */}
+        <div className="min-h-0 flex-1 overflow-y-auto p-4">
           <div className="space-y-6">
             {/* 生成制御フォーム */}
             <GenerationControlForm
@@ -169,25 +171,28 @@ export function ControlPanel({
               loadOriginalImage={loadOriginalImage}
               loadCandidateImage={loadCandidateImage}
             />
+          </div>
+        </div>
 
-            {/* PPTXエクスポート */}
-            <div className="space-y-3">
-              <h3 className="text-xs font-semibold text-slate-600">
-                スライドエクスポート
-              </h3>
-              <Button
-                onClick={handleOpenPptxDialog}
-                size="sm"
-                variant="outline"
-                className="w-full"
-              >
-                <FileSpreadsheet className="mr-2 h-4 w-4" />
-                PPTXエクスポート
-              </Button>
-              <p className="text-xs text-slate-500">
-                現在のスライドを編集可能なPowerPoint形式でダウンロード
-              </p>
-            </div>
+        {/* スライドエクスポート（下部固定） */}
+        <div className="shrink-0 border-t border-slate-200">
+          <div className="flex h-8 items-center border-b border-slate-200 bg-white px-3">
+            <h3 className="text-xs font-semibold text-slate-700">
+              スライドエクスポート
+            </h3>
+          </div>
+          <div className="space-y-3 p-4">
+            <Button
+              onClick={handleOpenPptxDialog}
+              size="sm"
+              className="w-full"
+            >
+              <FileSpreadsheet className="mr-2 h-4 w-4" />
+              PPTXエクスポート
+            </Button>
+            <p className="text-xs text-slate-500">
+              現在のスライドを編集可能なPowerPoint形式でダウンロード
+            </p>
           </div>
         </div>
       </div>

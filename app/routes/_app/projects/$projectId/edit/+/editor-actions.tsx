@@ -76,7 +76,7 @@ export function EditorActions({ projectId, slides }: EditorActionsProps) {
       )}
 
       {/* PDF書き出しボタン */}
-      <Button onClick={handleExport} disabled={isExporting} size="sm">
+      <Button onClick={handleExport} disabled={isExporting} size="sm" variant="outline">
         {isExporting ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
