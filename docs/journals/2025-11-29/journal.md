@@ -200,3 +200,51 @@ Gemini APIはクライアントサイドから直接呼び出す。既存のス�
 
 - docs/journals/2025-11-29/pptx-export-design.md
 - docs/journals/2025-11-29/pptx-export-sow.md
+
+---
+
+## PPTXエクスポート機能の実装
+
+### ユーザー指示
+
+設計書に基づいてPPTXエクスポート機能を実装。コスト表示は円換算、ダイアログのstate凝集度を高める、ファイル名はプロジェクト名+ページ番号、フォントサイズを元画像に合わせる。
+
+### ユーザー意図
+
+設計書を元に機能を実装し、使いやすさを追求。日本円でのコスト表示、カスタムフックによるロジック分離、直感的なファイル名、正確なフォントサイズ再現を求めていた。
+
+### 作業内容
+
+設計書に従い以下のファイルを作成した。
+
+- `app/lib/slide-analysis.ts` - Zodスキーマと型定義
+- `app/lib/slide-analyzer.client.ts` - Gemini API呼び出し、コスト計算
+- `app/lib/graphic-extractor.client.ts` - Canvas APIによるグラフィック切り出し
+- `app/lib/pptx-generator.client.ts` - PptxGenJSによるPPTX生成
+- `app/routes/_app/projects/$projectId/edit/+/components/pptx-export-dialog.tsx` - ダイアログUI
+- `app/routes/_app/projects/$projectId/edit/+/hooks/use-pptx-export.ts` - カスタムフック
+
+モデル選択ではGemini 2.5 FlashとGemini 3 Pro Previewを選択可能にした。ユーザーのフィードバックでモデル名を修正（gemini-2.5-proは存在せず、gemini-3-pro-previewが正しい）。
+
+コスト計算は当初概算固定値だったが、実行後に実際のトークン使用量から計算するよう変更。USD/100万トークンの料金表を定義し、usageMetadataから取得したトークン数で計算。円換算（1USD=150円）で表示。概算コストは実測値に基づき調整（Flash: ¥0.5、Pro: ¥3）。
+
+ダイアログのstate管理が複雑だったため、`usePptxExport`カスタムフックに抽出。ダイアログコンポーネントは純粋なプレゼンテーション層となり凝集度が向上。
+
+ファイル名は当初slideTitle（LLMが推定）を使用していたが、プロジェクト名+ページ番号形式（`{projectName}_{slideNumber}.pptx`）に変更。EditorActionsにprojectNameとslideNumberを追加。
+
+フォントサイズ問題は最も難航した。当初はptで推定→画像高さでスケーリングだったが、基準が曖昧で大きすぎ・小さすぎを繰り返した。最終的にfontSizeをパーセンテージ（スライド高さに対する比率）で推定するようプロンプトを変更。PPTX生成時にパーセンテージからpt（スライド高さ405pt基準）に変換する方式に落ち着いた。
+
+### 成果物
+
+- `app/lib/slide-analysis.ts` - 型定義
+- `app/lib/slide-analyzer.client.ts` - Gemini解析、円換算コスト計算
+- `app/lib/graphic-extractor.client.ts` - グラフィック切り出し
+- `app/lib/pptx-generator.client.ts` - PPTX生成
+- `app/routes/_app/projects/$projectId/edit/+/components/pptx-export-dialog.tsx` - UI
+- `app/routes/_app/projects/$projectId/edit/+/hooks/use-pptx-export.ts` - ロジックフック
+- `app/routes/_app/projects/$projectId/edit/+/editor-actions.tsx` - PPTXボタン追加
+- `app/routes/_app/projects/$projectId/edit/index.tsx` - props追加
+
+### 教訓
+
+LLMへの指示でフォントサイズの「単位」を曖昧にすると、解釈がぶれてスケーリング調整が泥沼化する。位置やサイズがパーセンテージならフォントサイズもパーセンテージで統一すべきだった。プロンプト設計段階で単位系を明確に揃えることが重要。

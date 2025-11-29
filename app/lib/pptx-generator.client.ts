@@ -8,7 +8,6 @@
 import PptxGenJS from 'pptxgenjs'
 import type {
   ExtractedGraphic,
-  ImageDimensions,
   SlideAnalysis,
   TextElement,
 } from './slide-analysis'
@@ -26,12 +25,15 @@ function pctToInches(pct: number, dimension: 'width' | 'height'): number {
 }
 
 /**
- * フォントサイズを画像サイズに応じてスケーリング
- * 標準的なスライドの高さを540pxと仮定
+ * フォントサイズをパーセンテージからptに変換
+ *
+ * LLMが出力するfontSizeはスライド高さに対するパーセンテージ。
+ * これをPPTXスライドの高さ（405pt）に対するptに変換。
  */
-function scaleFontSize(originalPt: number, imageHeight: number): number {
-  const scaleFactor = 540 / imageHeight
-  return Math.round(originalPt * scaleFactor)
+function fontSizePctToPt(fontSizePct: number): number {
+  // PPTXスライドの高さ（pt）: 5.625インチ * 72pt/インチ = 405pt
+  const slideHeightPt = SLIDE_HEIGHT * 72
+  return Math.round((fontSizePct / 100) * slideHeightPt)
 }
 
 /**
@@ -77,7 +79,6 @@ function extractBase64FromDataUrl(dataUrl: string): string {
 export interface GeneratePptxOptions {
   analysis: SlideAnalysis
   graphics: ExtractedGraphic[]
-  imageDimensions: ImageDimensions
   fileName?: string
 }
 
@@ -95,7 +96,6 @@ export async function generatePptx(
   const {
     analysis,
     graphics,
-    imageDimensions,
     fileName = `${analysis.slideTitle || 'slide'}.pptx`,
   } = options
 
@@ -126,7 +126,7 @@ export async function generatePptx(
 
   // テキスト要素を追加
   for (const textEl of analysis.textElements) {
-    const fontSize = scaleFontSize(textEl.fontSize, imageDimensions.height)
+    const fontSize = fontSizePctToPt(textEl.fontSize)
 
     // フォントを選択（スタイルとウェイトを考慮）
     const { fontFace, bold } = selectFontFace(

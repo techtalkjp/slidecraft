@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { getApiKey } from '~/lib/api-settings.client'
-import {
-  extractAllGraphicRegions,
-  getImageDimensions,
-} from '~/lib/graphic-extractor.client'
+import { extractAllGraphicRegions } from '~/lib/graphic-extractor.client'
 import {
   downloadPptx,
   generatePptx,
@@ -99,11 +96,9 @@ export function usePptxExport({
 
       // PPTX生成
       setState('generating')
-      const dimensions = await getImageDimensions(imageBlob)
       const pptx = await generatePptx({
         analysis: result.analysis,
         graphics: extractedGraphics,
-        imageDimensions: dimensions,
         fileName: `${projectName}_${slideNumber}.pptx`,
       })
       setPptxResult(pptx)
