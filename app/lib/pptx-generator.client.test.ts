@@ -289,6 +289,7 @@ describe('TableElementSchema', () => {
         x: 10,
         y: 20,
         width: 80,
+        height: 30,
         rowsJson: '[[{"text":"A1"}]]',
       }
 
@@ -297,6 +298,7 @@ describe('TableElementSchema', () => {
       expect(result.success).toBe(true)
       if (result.success) {
         expect(result.data.rowsJson).toBe('[[{"text":"A1"}]]')
+        expect(result.data.height).toBe(30)
       }
     })
 
@@ -305,6 +307,7 @@ describe('TableElementSchema', () => {
         x: 10,
         y: 20,
         width: 80,
+        height: 25,
         rowsJson: '[[{"text":"Header"}],[{"text":"Data"}]]',
         rowHeights: [5, 4],
         headerRows: 1,
@@ -328,6 +331,20 @@ describe('TableElementSchema', () => {
         x: 10,
         y: 20,
         width: 80,
+        height: 30,
+      }
+
+      const result = TableElementSchema.safeParse(table)
+
+      expect(result.success).toBe(false)
+    })
+
+    it('heightがない場合エラーになる', () => {
+      const table = {
+        x: 10,
+        y: 20,
+        width: 80,
+        rowsJson: '[[{"text":"A1"}]]',
       }
 
       const result = TableElementSchema.safeParse(table)
@@ -340,6 +357,7 @@ describe('TableElementSchema', () => {
         x: 10,
         y: 20,
         width: 80,
+        height: 30,
         rowsJson: '[[{"text":"A1"}]]',
         rowHeights: 'invalid',
       }

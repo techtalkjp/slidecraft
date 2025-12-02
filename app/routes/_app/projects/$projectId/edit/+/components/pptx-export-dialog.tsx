@@ -178,6 +178,7 @@ export function PptxExportDialog({
                       left: `${table.x}%`,
                       top: `${table.y}%`,
                       width: `${table.width}%`,
+                      height: `${table.height}%`,
                     }}
                     title="テーブル"
                   />

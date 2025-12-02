@@ -129,6 +129,7 @@ export const TableElementSchema = z.object({
   x: z.number().describe('左からの位置（0-100%）'),
   y: z.number().describe('上からの位置（0-100%）'),
   width: z.number().describe('幅（0-100%）'),
+  height: z.number().describe('高さ（0-100%）'),
   rowsJson: z
     .string()
     .describe(
