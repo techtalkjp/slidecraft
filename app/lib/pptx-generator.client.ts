@@ -207,7 +207,7 @@ function addShapeElements(
 /**
  * rowsJsonのパース結果を検証し、安全なTableCell配列に変換
  */
-function validateAndParseRowsJson(
+export function validateAndParseRowsJson(
   rowsJson: string,
 ): { valid: true; rows: TableCell[][] } | { valid: false; error: string } {
   let parsed: unknown
