@@ -45,7 +45,7 @@ function pctToInches(pct: number, dimension: 'width' | 'height'): number {
 function fontSizePctToPt(fontSizePct: number): number {
   // PPTXスライドの高さ（pt）: 5.625インチ * 72pt/インチ = 405pt
   const slideHeightPt = SLIDE_HEIGHT * 72
-  const scaleFactor = 1.0 // 補正なし（構造化出力により精度向上）
+  const scaleFactor = 1.2 // 補正なし（構造化出力により精度向上）
   return Math.round((fontSizePct / 100) * slideHeightPt * scaleFactor)
 }
 
