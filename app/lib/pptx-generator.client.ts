@@ -9,13 +9,22 @@ import PptxGenJS from 'pptxgenjs'
 import { blobToDataUrl } from './graphic-extractor.client'
 import type {
   ExtractedGraphic,
+  ShapeElement,
   SlideAnalysis,
+  TableCell,
+  TableElement,
   TextElement,
 } from './slide-analysis'
 
 // スライドサイズ（インチ）- 16:9フォーマット
 const SLIDE_WIDTH = 10
 const SLIDE_HEIGHT = 5.625
+
+// インデント1レベルあたりのオフセット（%）- PowerPointの標準箇条書きインデントに相当
+const INDENT_OFFSET_PCT = 3
+
+// シェイプ内テキストのデフォルトサイズ比率 - シェイプ高さに対する割合（視認性と余白のバランス）
+const DEFAULT_SHAPE_TEXT_SIZE_RATIO = 0.6
 
 /**
  * パーセンテージをインチに変換
@@ -73,6 +82,279 @@ function selectFontFace(
 }
 
 /**
+ * シェイプタイプをPptxGenJSのShapeTypeにマッピング
+ */
+function getShapeType(
+  pptx: PptxGenJS,
+  type: ShapeElement['type'],
+): PptxGenJS.ShapeType {
+  const shapeMap: Record<ShapeElement['type'], keyof typeof pptx.ShapeType> = {
+    rect: 'rect',
+    roundRect: 'roundRect',
+    ellipse: 'ellipse',
+    triangle: 'triangle',
+    line: 'line',
+    arrow: 'line', // 矢印線はlineにbeginArrowType/endArrowTypeを付ける
+    rightArrow: 'rightArrow',
+    leftArrow: 'leftArrow',
+    upArrow: 'upArrow',
+    downArrow: 'downArrow',
+  }
+  return pptx.ShapeType[shapeMap[type]]
+}
+
+/**
+ * シェイプ要素を追加
+ */
+function addShapeElements(
+  pptx: PptxGenJS,
+  slide: PptxGenJS.Slide,
+  shapes: ShapeElement[] | undefined,
+): void {
+  if (!shapes) return
+
+  for (const shape of shapes) {
+    const shapeType = getShapeType(pptx, shape.type)
+
+    // テキストがある場合は addText + shape オプションを使用
+    if (shape.text) {
+      const isBold = shape.fontWeight === 'bold' || shape.fontWeight === 'black'
+
+      const textOptions: PptxGenJS.TextPropsOptions = {
+        x: pctToInches(shape.x, 'width'),
+        y: pctToInches(shape.y, 'height'),
+        w: pctToInches(shape.width, 'width'),
+        h: pctToInches(shape.height, 'height'),
+        shape: shapeType,
+        align: shape.textAlign || 'center',
+        valign: shape.textValign || 'middle',
+        fontFace: 'Noto Sans JP',
+        bold: isBold,
+      }
+
+      // フォントサイズ（未指定時はシェイプ高さの60%から自動計算）
+      if (shape.fontSize) {
+        textOptions.fontSize = fontSizePctToPt(shape.fontSize)
+      } else {
+        textOptions.fontSize = fontSizePctToPt(
+          shape.height * DEFAULT_SHAPE_TEXT_SIZE_RATIO,
+        )
+      }
+
+      // テキスト色
+      if (shape.textColor) {
+        textOptions.color = shape.textColor
+      }
+
+      // 塗りつぶし色
+      if (shape.fillColor) {
+        textOptions.fill = { color: shape.fillColor }
+      }
+
+      // 線の色と太さ
+      if (shape.lineColor || shape.lineWidth) {
+        textOptions.line = {
+          color: shape.lineColor || '000000',
+          width: shape.lineWidth || 1,
+        }
+      }
+
+      // 回転
+      if (shape.rotate) {
+        textOptions.rotate = shape.rotate
+      }
+
+      // 角丸の半径
+      if (shape.type === 'roundRect' && shape.cornerRadius) {
+        textOptions.rectRadius = shape.cornerRadius
+      }
+
+      slide.addText(shape.text, textOptions)
+    } else {
+      // テキストなしの場合は通常の addShape
+      const options: PptxGenJS.ShapeProps = {
+        x: pctToInches(shape.x, 'width'),
+        y: pctToInches(shape.y, 'height'),
+        w: pctToInches(shape.width, 'width'),
+        h: pctToInches(shape.height, 'height'),
+      }
+
+      // 塗りつぶし色
+      if (shape.fillColor) {
+        options.fill = { color: shape.fillColor }
+      }
+
+      // 線の色と太さ
+      if (shape.lineColor || shape.lineWidth) {
+        options.line = {
+          color: shape.lineColor || '000000',
+          width: shape.lineWidth || 1,
+        }
+
+        // 矢印線の場合
+        if (shape.type === 'arrow') {
+          options.line.endArrowType = 'arrow'
+        }
+      }
+
+      // 回転
+      if (shape.rotate) {
+        options.rotate = shape.rotate
+      }
+
+      // 角丸の半径
+      if (shape.type === 'roundRect' && shape.cornerRadius) {
+        options.rectRadius = shape.cornerRadius
+      }
+
+      slide.addShape(shapeType, options)
+    }
+  }
+}
+
+/**
+ * rowsJsonのパース結果を検証し、安全なTableCell配列に変換
+ */
+export function validateAndParseRowsJson(
+  rowsJson: string,
+): { valid: true; rows: TableCell[][] } | { valid: false; error: string } {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(rowsJson)
+  } catch {
+    return { valid: false, error: 'Invalid JSON' }
+  }
+
+  if (!Array.isArray(parsed)) {
+    return { valid: false, error: 'Root is not an array' }
+  }
+
+  const validatedRows: TableCell[][] = []
+  for (let rowIdx = 0; rowIdx < parsed.length; rowIdx++) {
+    const row = parsed[rowIdx]
+    if (!Array.isArray(row)) {
+      return { valid: false, error: `Row ${rowIdx} is not an array` }
+    }
+
+    const validatedCells: TableCell[] = []
+    for (let cellIdx = 0; cellIdx < row.length; cellIdx++) {
+      const cell = row[cellIdx] as Record<string, unknown>
+      if (typeof cell !== 'object' || cell === null) {
+        return {
+          valid: false,
+          error: `Cell at [${rowIdx}][${cellIdx}] is not an object`,
+        }
+      }
+
+      // textは必須、存在しない場合は空文字にフォールバック
+      const text = typeof cell.text === 'string' ? cell.text : ''
+
+      // オプションフィールドの型検証とフォールバック
+      const colspan =
+        typeof cell.colspan === 'number' ? cell.colspan : undefined
+      const rowspan =
+        typeof cell.rowspan === 'number' ? cell.rowspan : undefined
+      const bold = typeof cell.bold === 'boolean' ? cell.bold : undefined
+      const fillColor =
+        typeof cell.fillColor === 'string' ? cell.fillColor : undefined
+      const color = typeof cell.color === 'string' ? cell.color : undefined
+      const align =
+        cell.align === 'left' ||
+        cell.align === 'center' ||
+        cell.align === 'right'
+          ? cell.align
+          : undefined
+
+      validatedCells.push({
+        text,
+        colspan,
+        rowspan,
+        bold,
+        fillColor,
+        color,
+        align,
+      })
+    }
+    validatedRows.push(validatedCells)
+  }
+
+  return { valid: true, rows: validatedRows }
+}
+
+/**
+ * テーブル要素を追加
+ */
+function addTableElements(
+  slide: PptxGenJS.Slide,
+  tables: TableElement[] | undefined,
+): void {
+  if (!tables) return
+
+  for (const table of tables) {
+    // rowsJsonをパースして検証
+    const parseResult = validateAndParseRowsJson(table.rowsJson)
+    if (!parseResult.valid) {
+      console.warn(
+        `Failed to parse rowsJson (${parseResult.error}), skipping table:`,
+        table.rowsJson,
+      )
+      continue
+    }
+
+    const parsedRows = parseResult.rows
+
+    // 行データを変換
+    const rows: PptxGenJS.TableRow[] = parsedRows.map((row, rowIdx) => {
+      return row.map((cell): PptxGenJS.TableCell => {
+        const cellOptions: PptxGenJS.TableCellProps = {}
+
+        if (cell.colspan) cellOptions.colspan = cell.colspan
+        if (cell.rowspan) cellOptions.rowspan = cell.rowspan
+        if (cell.bold) cellOptions.bold = cell.bold
+        // fillColorが"transparent"以外の場合のみ背景色を設定
+        if (cell.fillColor && cell.fillColor !== 'transparent') {
+          cellOptions.fill = { color: cell.fillColor }
+        }
+        if (cell.color) cellOptions.color = cell.color
+        if (cell.align) cellOptions.align = cell.align
+
+        // ヘッダー行のスタイル
+        if (table.headerRows && rowIdx < table.headerRows) {
+          cellOptions.bold = true
+        }
+
+        return {
+          text: cell.text,
+          options: cellOptions,
+        }
+      })
+    })
+
+    const tableOptions: PptxGenJS.TableProps = {
+      x: pctToInches(table.x, 'width'),
+      y: pctToInches(table.y, 'height'),
+      w: pctToInches(table.width, 'width'),
+      border: table.borderColor
+        ? { type: 'solid', pt: 1, color: table.borderColor }
+        : { type: 'solid', pt: 1, color: '000000' },
+      fontFace: 'Noto Sans JP',
+      valign: 'middle',
+    }
+
+    if (table.fontSize) {
+      tableOptions.fontSize = fontSizePctToPt(table.fontSize)
+    }
+
+    // rowHeightsが指定されている場合は行高さを設定
+    if (table.rowHeights && table.rowHeights.length > 0) {
+      tableOptions.rowH = table.rowHeights.map((h) => pctToInches(h, 'height'))
+    }
+
+    slide.addTable(rows, tableOptions)
+  }
+}
+
+/**
  * Data URLからBase64データ部分を抽出
  */
 function extractBase64FromDataUrl(dataUrl: string): string {
@@ -118,7 +400,7 @@ export async function generatePptx(
   // 背景色を設定
   slide.background = { color: analysis.backgroundColor }
 
-  // グラフィック要素を追加（テキストの下に配置するため先に追加）
+  // 1. グラフィック要素を追加（最背面に配置）
   for (const graphic of graphics) {
     const { region, imageBlob } = graphic
     // Blob から Data URL に遅延変換（メモリ効率向上）
@@ -136,7 +418,10 @@ export async function generatePptx(
     }
   }
 
-  // テキスト要素を追加
+  // 2. シェイプ要素を追加（graphicRegionsの上）
+  addShapeElements(pptx, slide, analysis.shapeElements)
+
+  // 3. テキスト要素を追加（シェイプの上）
   for (const textEl of analysis.textElements) {
     const fontSize = fontSizePctToPt(textEl.fontSize)
 
@@ -147,10 +432,17 @@ export async function generatePptx(
       textEl.role,
     )
 
-    slide.addText(textEl.content, {
-      x: pctToInches(textEl.x, 'width'),
+    // インデントレベルに応じてx座標をオフセット（1レベルあたり3%）
+    // 幅が負にならないよう最小値を保証し、スライド範囲内に収める
+    const indentOffset = (textEl.indentLevel ?? 0) * INDENT_OFFSET_PCT
+    const minWidthPct = 1
+    const finalWidthPct = Math.max(textEl.width - indentOffset, minWidthPct)
+    const xPct = Math.min(textEl.x + indentOffset, 100 - finalWidthPct)
+
+    const textOptions: PptxGenJS.TextPropsOptions = {
+      x: pctToInches(xPct, 'width'),
       y: pctToInches(textEl.y, 'height'),
-      w: pctToInches(textEl.width, 'width'),
+      w: pctToInches(finalWidthPct, 'width'),
       h: pctToInches(textEl.height, 'height'),
       fontSize,
       fontFace,
@@ -158,8 +450,18 @@ export async function generatePptx(
       color: textEl.color,
       align: textEl.align,
       valign: 'top',
-    })
+    }
+
+    // 背景色が指定されている場合は設定
+    if (textEl.backgroundColor) {
+      textOptions.fill = { color: textEl.backgroundColor }
+    }
+
+    slide.addText(textEl.content, textOptions)
   }
+
+  // 4. テーブル要素を追加（テキストの後）
+  addTableElements(slide, analysis.tableElements)
 
   // Blobとして出力（ブラウザ環境）
   const result = await pptx.write({ outputType: 'blob' })

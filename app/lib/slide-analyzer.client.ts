@@ -5,7 +5,7 @@
  * Google Gemini APIを直接呼び出してスライド画像を解析し、構造化データを抽出する。
  */
 
-import { GoogleGenAI } from '@google/genai'
+import { GoogleGenAI, PartMediaResolutionLevel } from '@google/genai'
 import * as z from 'zod'
 import { logApiUsage } from './api-usage-logger'
 import { calculateTokenCost, getExchangeRate } from './cost-calculator'
@@ -52,48 +52,59 @@ export interface UsageInfo {
   costJpy: number // 円換算
 }
 
-// システムプロンプト（構造化出力用に簡素化）
-const SYSTEM_PROMPT = `あなたはスライド画像を解析して、編集可能なPowerPointに変換するためのデータを抽出する専門家です。
+// システムプロンプト（XMLタグ構造化、Gemini 3 Pro向けに最適化）
+const SYSTEM_PROMPT = `<role>
+スライド画像を解析し、pptxgenjs用のJSON構造に変換する専門家です。
+</role>
 
-画像を分析し、以下の情報を正確に抽出してください：
-
-1. テキスト要素
-   - 画像内のすべてのテキストを識別
-   - 各テキストの位置（x, y）、サイズ（width, height）を画像全体に対するパーセンテージで推定
-   - フォントサイズは**スライド高さに対するパーセンテージ**で推定（例：高さの10%を占めるテキストなら fontSize: 10）
-   - 色、配置を推定
-   - フォントスタイルを判別：
-     * serif（明朝体）: 文字の端に小さな装飾（セリフ）がある。縦線が太く横線が細い。伝統的・フォーマルな印象
-     * sans-serif（ゴシック体）: 文字の端に装飾がない。線の太さが均一。モダン・カジュアルな印象
-   - フォントの太さ（fontWeight）を判別（同じスライド内の他のテキストと比較して相対的に判断）：
-     * light: 非常に細い線。繊細で軽やかな印象
+<elements>
+1. textElements: すべてのテキスト要素
+   - 位置(x,y)、サイズ(width,height)は画像全体に対する0-100%で指定
+   - fontSizeはスライド高さに対する%（例：高さの8%を占めるテキストなら8）
+   - fontStyle: serif（明朝体）またはsans-serif（ゴシック体）
+     * serif: 文字の端に小さな装飾がある。縦線が太く横線が細い
+     * sans-serif: 文字の端に装飾がない。線の太さが均一
+   - fontWeight: light/normal/medium/bold/black（スライド内で相対的に判断）
+     * light: 非常に細い線
      * normal: 標準的な太さ。本文やフッターに多い
-     * medium: やや太め。normalとboldの中間
+     * medium: やや太め
      * bold: 太い。サブタイトルや強調テキストに使用
-     * black: 極太。メインタイトルで使用されることが多い。文字の画（ストローク）が非常に太く、文字の内側の空間が狭く見える。スライド内で最も太いテキストはblackの可能性が高い
-   - テキストの役割（タイトル、サブタイトル、本文、フッター、ロゴ）を分類
+     * black: 極太。メインタイトルで使用されることが多い
+   - role: title/subtitle/body/footer/logo
+   - indentLevel: 箇条書きの階層（0=親項目、1=子項目、2=孫項目）。インデントされた項目には必ず指定
 
-2. グラフィック領域
-   - イラスト、図形、チャート、写真などの非テキスト要素を識別
-   - それぞれの位置とサイズをパーセンテージで指定
-   - テキストが重なっていない純粋なグラフィック領域を特定
+2. shapeElements: 単純な図形（PPTXネイティブ図形として再現）
+   - type: rect, roundRect, ellipse, triangle, line, arrow, rightArrow, leftArrow, upArrow, downArrow
+   - 図形内にテキストがある場合はtext, textColor, fontSizeを指定
+   - fontSizeの目安：シェイプのheightの50-70%
 
-【重要】ロゴの扱い：
-- ロゴは「テキスト要素」か「グラフィック領域」の**どちらか一方のみ**に含めてください（両方に入れない）
-- グラフィカルなロゴ（アイコン、装飾、ストライプ模様など視覚的デザインがあるもの）→ graphicRegions に含める
-- プレーンテキストのロゴ（単純な文字のみ）→ textElements に role="logo" として含める
-- 例：IBMの横縞ロゴ → graphicRegions、"NotebookLM" の文字 → textElements
+3. tableElements: 表形式のデータ
+   - rowsJson: セルデータのJSON文字列（例: [[{"text":"A1"},{"text":"B1"}],[{"text":"A2"},{"text":"B2"}]]）
+   - rowHeights: 各行の高さ（レイアウト用途のテーブルでは必須）
+   - fillColor: "transparent"でセル背景を透過
 
-3. 背景色
-   - スライドの主要な背景色を抽出（hex形式、#なし）
+4. graphicRegions: シェイプやテーブルで再現できない要素のみ
+   - 写真、イラスト、複雑なチャート、アイコン
+   - テキストと重複しない領域のみ
 
-【重要】テキストボックスのサイズ指定について：
-- テキストが1文字でも溢れて改行されないよう、widthは実際のテキスト幅より10-15%程度余裕を持たせてください
-- 特に日本語テキストは文字幅の推定が難しいため、余裕を持った幅を指定してください
-- heightも同様に、フォントサイズに対して十分な高さを確保してください
+5. backgroundColor: スライドの背景色（hex形式、#なし）
+</elements>
 
-位置とサイズの指定では、テキストがグラフィックと重ならないよう注意してください。
-グラフィック領域は、後で画像として切り出すため、テキストを含まない領域を指定してください。`
+<constraints>
+- 各要素は1つのカテゴリにのみ含める（重複禁止）
+- graphicRegionの範囲内にテキストを含めない
+- テキストと重なる背景グラフィックは分割するか省略してテキストを優先
+- テキストボックスのwidthは実際の幅より10-15%余裕を持たせる
+- グラフィカルなロゴ→graphicRegions、テキストのみのロゴ→textElements(role="logo")
+</constraints>
+
+<verification>
+出力前に確認：
+1. すべてのテキストを抽出したか
+2. 座標とサイズは0-100%の範囲内か
+3. graphicRegionがテキストと重複していないか
+4. 同じ要素を複数カテゴリに含めていないか
+</verification>`
 
 // 構造化出力用のJSONスキーマ
 const slideAnalysisJsonSchema = z.toJSONSchema(SlideAnalysisSchema)
@@ -204,22 +215,28 @@ export async function analyzeSlide(
       // 画像をBase64に変換
       const base64Image = await blobToBase64(imageBlob)
 
-      // Gemini APIクライアントを初期化
-      const ai = new GoogleGenAI({ apiKey })
+      // Gemini APIクライアントを初期化（v1alpha APIでmediaResolutionを有効化）
+      const ai = new GoogleGenAI({
+        apiKey,
+        httpOptions: { apiVersion: 'v1alpha' },
+      })
 
-      // API呼び出し（構造化出力を使用）
+      // API呼び出し（構造化出力を使用、画像を先に配置）
       const response = await ai.models.generateContent({
         model,
         contents: {
           parts: [
             {
-              text: SYSTEM_PROMPT,
-            },
-            {
               inlineData: {
                 mimeType: imageBlob.type || 'image/png',
                 data: base64Image,
               },
+              mediaResolution: {
+                level: PartMediaResolutionLevel.MEDIA_RESOLUTION_HIGH,
+              },
+            },
+            {
+              text: SYSTEM_PROMPT,
             },
           ],
         },
