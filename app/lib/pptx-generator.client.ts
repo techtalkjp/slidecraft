@@ -136,7 +136,9 @@ function addShapeElements(
       if (shape.fontSize) {
         textOptions.fontSize = fontSizePctToPt(shape.fontSize)
       } else {
-        textOptions.fontSize = fontSizePctToPt(shape.height * DEFAULT_SHAPE_TEXT_SIZE_RATIO)
+        textOptions.fontSize = fontSizePctToPt(
+          shape.height * DEFAULT_SHAPE_TEXT_SIZE_RATIO,
+        )
       }
 
       // テキスト色
@@ -257,7 +259,9 @@ export function validateAndParseRowsJson(
         typeof cell.fillColor === 'string' ? cell.fillColor : undefined
       const color = typeof cell.color === 'string' ? cell.color : undefined
       const align =
-        cell.align === 'left' || cell.align === 'center' || cell.align === 'right'
+        cell.align === 'left' ||
+        cell.align === 'center' ||
+        cell.align === 'right'
           ? cell.align
           : undefined
 

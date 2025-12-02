@@ -62,7 +62,9 @@ describe('validateAndParseRowsJson', () => {
     })
 
     it('透過背景色(transparent)を保持する', () => {
-      const rowsJson = JSON.stringify([[{ text: 'Cell', fillColor: 'transparent' }]])
+      const rowsJson = JSON.stringify([
+        [{ text: 'Cell', fillColor: 'transparent' }],
+      ])
 
       const result = validateAndParseRowsJson(rowsJson)
 
