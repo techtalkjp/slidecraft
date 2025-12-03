@@ -3,9 +3,10 @@
  *
  * このファイルは .client.ts 拡張子を使用しており、クライアントサイドでのみバンドルされる。
  * jsPDFを使用してスライド画像からPDFを生成する。
+ *
+ * 注: jsPDFは大きなライブラリ（canvg, html2canvasを含む）のため、動的importで遅延ロードする。
  */
 
-import { jsPDF } from 'jspdf'
 import { loadCurrentSlideImage } from './slides-repository.client'
 import type { Slide } from './types'
 
@@ -90,7 +91,8 @@ export async function generatePdfFromSlides(
     const pageWidthMm = (width / DPI) * MM_PER_INCH
     const pageHeightMm = (height / DPI) * MM_PER_INCH
 
-    // jsPDFインスタンスを作成
+    // jsPDFを動的にロード（canvg, html2canvasを含む大きなライブラリのため遅延ロード）
+    const { jsPDF } = await import('jspdf')
     const pdf = new jsPDF({
       orientation: aspectRatio > 1 ? 'landscape' : 'portrait',
       unit: 'mm',

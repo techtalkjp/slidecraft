@@ -2,15 +2,31 @@
  * PDFをページごとの画像に変換するユーティリティ
  *
  * このファイルは .client.ts 拡張子を使用しており、クライアントサイドでのみバンドルされる。
+ *
+ * 注: pdfjs-distは大きなライブラリのため、動的importで遅延ロードする。
  */
 
-import * as pdfjsLib from 'pdfjs-dist'
+import type * as PdfjsLib from 'pdfjs-dist'
 import { saveSlideImage } from './slides-repository.client'
 import type { Slide } from './types'
 
-// pdf.js のワーカーを設定
-if (typeof window !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
+// pdfjs-distを動的にロードしてキャッシュ
+let pdfjsLibCache: typeof PdfjsLib | null = null
+
+async function getPdfjsLib(): Promise<typeof PdfjsLib> {
+  if (pdfjsLibCache) {
+    return pdfjsLibCache
+  }
+
+  const pdfjsLib = await import('pdfjs-dist')
+
+  // pdf.js のワーカーを設定
+  if (typeof window !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
+  }
+
+  pdfjsLibCache = pdfjsLib
+  return pdfjsLib
 }
 
 /**
@@ -29,7 +45,7 @@ const RENDER_SCALE = 2 // 高解像度レンダリング（1920px基準）
  * @param page PDFページ
  * @returns 画像のBlob
  */
-async function renderPageToBlob(page: pdfjsLib.PDFPageProxy): Promise<Blob> {
+async function renderPageToBlob(page: PdfjsLib.PDFPageProxy): Promise<Blob> {
   const viewport = page.getViewport({ scale: RENDER_SCALE })
 
   // Canvasを作成
@@ -76,6 +92,9 @@ export async function convertPdfToSlides(
 ): Promise<Slide[]> {
   // PDFファイルをArrayBufferとして読み込む
   const arrayBuffer = await file.arrayBuffer()
+
+  // pdfjs-distを動的にロード
+  const pdfjsLib = await getPdfjsLib()
 
   // PDFドキュメントを読み込む
   const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer })
