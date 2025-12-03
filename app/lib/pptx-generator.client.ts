@@ -18,8 +18,14 @@ async function getPptxGenJS(): Promise<typeof PptxGenJS> {
   if (pptxGenJSCache) {
     return pptxGenJSCache
   }
-  pptxGenJSCache = (await import('pptxgenjs')).default
-  return pptxGenJSCache
+  try {
+    pptxGenJSCache = (await import('pptxgenjs')).default
+    return pptxGenJSCache
+  } catch {
+    throw new Error(
+      'PPTX生成ライブラリの読み込みに失敗しました。ページを再読み込みしてください。',
+    )
+  }
 }
 import type {
   ExtractedGraphic,

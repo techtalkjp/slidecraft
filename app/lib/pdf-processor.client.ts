@@ -18,15 +18,21 @@ async function getPdfjsLib(): Promise<typeof PdfjsLib> {
     return pdfjsLibCache
   }
 
-  const pdfjsLib = await import('pdfjs-dist')
+  try {
+    const pdfjsLib = await import('pdfjs-dist')
 
-  // pdf.js のワーカーを設定
-  if (typeof window !== 'undefined') {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
+    // pdf.js のワーカーを設定
+    if (typeof window !== 'undefined') {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
+    }
+
+    pdfjsLibCache = pdfjsLib
+    return pdfjsLib
+  } catch {
+    throw new Error(
+      'PDF処理ライブラリの読み込みに失敗しました。ページを再読み込みしてください。',
+    )
   }
-
-  pdfjsLibCache = pdfjsLib
-  return pdfjsLib
 }
 
 /**

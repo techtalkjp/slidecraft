@@ -18,9 +18,15 @@ async function getJsPDF(): Promise<typeof JsPDFType> {
   if (jsPDFCache) {
     return jsPDFCache
   }
-  const { jsPDF } = await import('jspdf')
-  jsPDFCache = jsPDF
-  return jsPDFCache
+  try {
+    const { jsPDF } = await import('jspdf')
+    jsPDFCache = jsPDF
+    return jsPDFCache
+  } catch {
+    throw new Error(
+      'PDF生成ライブラリの読み込みに失敗しました。ページを再読み込みしてください。',
+    )
+  }
 }
 
 /**
