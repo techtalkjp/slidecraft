@@ -6,7 +6,7 @@ AI生成スライドをピンポイント修正するWebアプリケーション
 
 「30枚のうち3枚だけ直したいのに、再生成すると5〜10分待つ上に完璧だった27枚まで変わってしまうガチャ状態」という問題を解決します。
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License: O'Saasy](https://img.shields.io/badge/License-O'Saasy-blue.svg)](LICENSE)
 
 ## 概要
 
@@ -101,7 +101,7 @@ pnpm format:fix
 
 ## ライセンス
 
-MIT License - 詳細は [LICENSE](LICENSE) ファイルを参照してください。
+O'Saasy License - 詳細は [LICENSE](LICENSE) ファイルを参照してください。
 
 ## 開発元
 
