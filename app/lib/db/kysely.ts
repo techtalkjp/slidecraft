@@ -9,6 +9,11 @@ const LOCAL_DATABASE_URL = 'file:./data/local.db'
 const databaseUrl = process.env.DATABASE_URL ?? LOCAL_DATABASE_URL
 const isTurso = databaseUrl.startsWith('libsql://')
 
+// Turso 環境では認証トークンが必須
+if (isTurso && !process.env.DATABASE_AUTH_TOKEN) {
+  throw new Error('DATABASE_AUTH_TOKEN is required for Turso connection')
+}
+
 const client = createClient({
   url: databaseUrl,
   authToken: isTurso ? process.env.DATABASE_AUTH_TOKEN : undefined,
