@@ -1,4 +1,4 @@
-name: Validate
+name: CI
 
 on:
   pull_request:
@@ -33,3 +33,19 @@ jobs:
 
       - name: Test
         run: pnpm test --run
+
+  migrate:
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Atlas
+        uses: ariga/setup-atlas@v0
+
+      - name: Apply migrations to Turso
+        run: atlas schema apply --env turso --auto-approve
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_AUTH_TOKEN: ${{ secrets.DATABASE_AUTH_TOKEN }}

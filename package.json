@@ -6,8 +6,7 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "@tailwindcss/oxide",
-      "esbuild",
-      "prisma"
+      "esbuild"
     ]
   },
   "scripts": {
@@ -22,17 +21,15 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "validate": "run-p format lint && run-p typecheck",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio",
-    "turso:migrate": "tsx scripts/migrate-turso.ts",
+    "db:migrate": "atlas migrate diff --env local",
+    "db:apply": "atlas migrate apply --env local",
+    "turso:apply": "dotenv -e .env.production -- atlas schema apply --env turso",
     "turso:shell": "turso db shell slidecraft"
   },
   "dependencies": {
     "@google/genai": "1.30.0",
-    "@libsql/client": "0.15.15",
-    "@prisma/adapter-libsql": "7.1.0",
-    "@prisma/client": "7.1.0",
+    "@libsql/client": "0.8.1",
+    "@libsql/kysely-libsql": "0.4.1",
     "@react-router/node": "7.10.0",
     "@react-router/serve": "7.10.0",
     "@upstash/ratelimit": "2.0.7",
@@ -43,6 +40,7 @@
     "clsx": "2.1.1",
     "isbot": "5.1.32",
     "jspdf": "3.0.4",
+    "kysely": "0.28.9",
     "lucide-react": "0.555.0",
     "next-themes": "0.4.6",
     "pdfjs-dist": "5.4.449",
@@ -70,12 +68,12 @@
     "@vitejs/plugin-react": "5.1.1",
     "@vitest/ui": "4.0.15",
     "cc-hooks-ts": "2.0.56",
+    "dotenv-cli": "11.0.0",
     "happy-dom": "20.0.11",
     "npm-run-all": "4.1.5",
     "prettier": "3.7.4",
     "prettier-plugin-organize-imports": "4.3.0",
     "prettier-plugin-tailwindcss": "0.7.2",
-    "prisma": "7.1.0",
     "react-router-auto-routes": "0.6.1",
     "tailwindcss": "4.1.17",
     "tsx": "4.21.0",

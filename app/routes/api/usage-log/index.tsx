@@ -4,7 +4,7 @@ import {
   MAX_METADATA_SIZE,
 } from '~/lib/api-usage-log-schema'
 import { auth } from '~/lib/auth/auth'
-import { prisma } from '~/lib/db/prisma'
+import { db } from '~/lib/db/kysely'
 import { checkRateLimit } from '~/lib/rate-limiter'
 import type { Route } from './+types'
 
@@ -71,19 +71,21 @@ export async function action({ request }: Route.ActionArgs) {
       }
     }
 
-    await prisma.apiUsageLog.create({
-      data: {
-        userId,
+    await db
+      .insertInto('api_usage_log')
+      .values({
+        id: crypto.randomUUID(),
+        user_id: userId,
         operation: validatedData.operation,
         model: validatedData.model,
-        inputTokens: validatedData.inputTokens,
-        outputTokens: validatedData.outputTokens,
-        costUsd: validatedData.costUsd,
-        costJpy: validatedData.costJpy,
-        exchangeRate: validatedData.exchangeRate,
+        input_tokens: validatedData.inputTokens,
+        output_tokens: validatedData.outputTokens,
+        cost_usd: validatedData.costUsd,
+        cost_jpy: validatedData.costJpy,
+        exchange_rate: validatedData.exchangeRate,
         metadata: metadataJson,
-      },
-    })
+      })
+      .execute()
 
     return data({ success: true })
   } catch (error) {

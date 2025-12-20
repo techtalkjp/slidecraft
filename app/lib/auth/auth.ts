@@ -1,7 +1,6 @@
 import { betterAuth } from 'better-auth'
-import { prismaAdapter } from 'better-auth/adapters/prisma'
 import { anonymous } from 'better-auth/plugins'
-import { prisma } from '~/lib/db/prisma'
+import { db } from '~/lib/db/kysely'
 
 // BETTER_AUTH_SECRET を取得
 // 本番環境・Preview環境では env.server.ts で必須チェック済み
@@ -39,9 +38,10 @@ export const auth = betterAuth({
   secret: getSecret(),
   baseURL,
   trustedOrigins,
-  database: prismaAdapter(prisma, {
-    provider: 'sqlite',
-  }),
+  database: {
+    db,
+    type: 'sqlite',
+  },
   plugins: [anonymous()],
 })
 

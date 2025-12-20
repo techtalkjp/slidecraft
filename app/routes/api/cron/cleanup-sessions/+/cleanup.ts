@@ -1,4 +1,5 @@
-import type { prisma } from '~/lib/db/prisma'
+import type { Kysely } from 'kysely'
+import type { Database } from '~/lib/db/types'
 
 /**
  * Cron 認証を検証
@@ -19,31 +20,41 @@ export function verifyCronAuth(
 /**
  * セッションクリーンアップを実行
  */
-export async function cleanupSessions(db: typeof prisma) {
-  const now = new Date()
+export async function cleanupSessions(db: Kysely<Database>) {
+  const now = new Date().toISOString()
 
   // 1. 期限切れセッションを削除
-  const deletedSessions = await db.session.deleteMany({
-    where: {
-      expiresAt: {
-        lt: now,
-      },
-    },
-  })
+  const deletedSessionsResult = await db
+    .deleteFrom('session')
+    .where('expires_at', '<', now)
+    .execute()
+
+  const deletedSessions = deletedSessionsResult.reduce(
+    (acc, r) => acc + Number(r.numDeletedRows ?? 0),
+    0,
+  )
 
   // 2. セッションを持たない匿名ユーザーを削除
-  const deletedUsers = await db.user.deleteMany({
-    where: {
-      isAnonymous: true,
-      sessions: {
-        none: {},
-      },
-    },
-  })
+  // サブクエリでセッションを持つユーザーIDを取得し、それ以外の匿名ユーザーを削除
+  const usersWithSessions = db
+    .selectFrom('session')
+    .select('user_id')
+    .distinct()
+
+  const deletedUsersResult = await db
+    .deleteFrom('user')
+    .where('is_anonymous', '=', 1)
+    .where('id', 'not in', usersWithSessions)
+    .execute()
+
+  const deletedAnonymousUsers = deletedUsersResult.reduce(
+    (acc, r) => acc + Number(r.numDeletedRows ?? 0),
+    0,
+  )
 
   return {
-    deletedSessions: deletedSessions.count,
-    deletedAnonymousUsers: deletedUsers.count,
-    executedAt: now.toISOString(),
+    deletedSessions,
+    deletedAnonymousUsers,
+    executedAt: now,
   }
 }
