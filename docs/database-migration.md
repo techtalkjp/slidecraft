@@ -1,35 +1,79 @@
 # データベースマイグレーション
 
-## 背景
+## 概要
 
-このプロジェクトでは Prisma 7 と Turso (libSQL) を組み合わせて使用している。Prisma CLI は libSQL プロトコルを直接サポートしていないため、標準の `prisma migrate deploy` コマンドでは本番環境への適用ができない。この制約を回避するために、カスタムのマイグレーションスクリプトを用意した。
+このプロジェクトでは Atlas (マイグレーション管理) と Kysely (クエリビルダー) を組み合わせて使用している。ローカル開発では SQLite ファイル (`file:./data/local.db`) を使い、本番環境では Turso (LibSQL) のリモートデータベースを使う構成となっている。
 
-ローカル開発では SQLite ファイル (`file:./data/local.db`) を使い、本番環境では Turso のリモートデータベースを使う構成となっている。
+## 技術スタック
+
+- **Atlas**: スキーマ管理とマイグレーション
+- **Kysely**: 型安全なクエリビルダー（CamelCasePlugin で snake_case ↔ camelCase 変換）
+- **Turso**: LibSQL ベースのエッジデータベース
+- **kysely-codegen**: DB スキーマから TypeScript 型を自動生成
 
 ## マイグレーションの流れ
 
-スキーマを変更する際は、まず `prisma/schema.prisma` を編集する。次に `pnpm db:migrate --name <名前>` を実行すると、ローカルの SQLite に対してマイグレーションが作成され、`prisma/migrations/` 以下にタイムスタンプ付きのフォルダと `migration.sql` が生成される。
+### 1. スキーマの編集
 
-本番環境への適用は `pnpm turso:migrate` で行う。このコマンドは `scripts/migrate-turso.ts` を実行し、Turso データベースに接続して未適用のマイグレーションを順番に適用する。適用済みのマイグレーションは `_prisma_migrations` テーブルで管理されるため、何度実行しても同じマイグレーションが重複して適用されることはない。
+`db/schema.sql` を編集する。これが正規のスキーマ定義となる。
 
-本番環境への適用時は `DATABASE_URL` 環境変数を設定する必要がある。`.env.production` を source するか、直接環境変数を指定して実行する。
-
-```bash
-source .env.production && pnpm turso:migrate
-```
-
-## 環境変数の形式
-
-`DATABASE_URL` は Turso の接続情報と認証トークンを含む単一の URL として指定する。
+### 2. マイグレーションファイルの生成
 
 ```bash
-DATABASE_URL=libsql://your-db.turso.io?authToken=xxx
+pnpm db:migrate
 ```
 
-認証トークンはクエリパラメータとして URL に埋め込む形式をとる。これは `@libsql/client` が期待する形式である。なお、Prisma CLI はこの形式を認識しないため、`prisma db push` や `prisma migrate deploy` を直接 Turso に対して実行することはできない。そのため本プロジェクトではカスタムスクリプトでマイグレーションを適用している。
+`db/migrations/` 以下にタイムスタンプ付きの SQL ファイルが生成される。
+
+### 3. ローカル DB への適用
+
+```bash
+pnpm db:apply
+```
+
+### 4. 型定義の再生成
+
+```bash
+pnpm db:codegen
+```
+
+`app/lib/db/types.ts` が更新される。
+
+### 5. 本番環境 (Turso) への適用
+
+```bash
+pnpm turso:apply
+```
+
+このコマンドは `.env.production` を読み込み、確認プロンプトを表示してから適用する。CI では `--auto-approve` オプション付きで自動適用される。
+
+## 環境変数
+
+本番環境への適用には以下の環境変数が必要:
+
+- `DATABASE_URL`: Turso の libsql:// URL
+- `DATABASE_AUTH_TOKEN`: Turso の認証トークン
+
+`.env.production` に設定するか、GitHub Secrets に登録する。
 
 ## トラブルシューティング
 
-`pnpm turso:shell` で Turso のシェルに入れる。適用済みマイグレーションの確認、テーブル構造の確認、レコードの削除などはシェル上で行う。
+### Turso シェルへのアクセス
 
-誤ったマイグレーションを適用してしまった場合は、`_prisma_migrations` テーブルから該当レコードを削除し、必要に応じてテーブルを手動で修正する。
+```bash
+pnpm turso:shell
+```
+
+### Atlas のスキーマ差分確認
+
+```bash
+atlas schema diff --env local
+```
+
+### ベースラインの設定
+
+既存のデータベースに対して Atlas を導入する場合:
+
+```bash
+atlas migrate apply --env local --baseline <migration_version>
+```

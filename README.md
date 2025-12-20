@@ -23,6 +23,8 @@ Nano Banana Pro (Gemini Pro 3) やGoogle Notebook LMで生成したスライド�
 ## 技術スタック
 
 - **Frontend**: React Router v7, shadcn/ui, TailwindCSS v4
+- **Backend**: better-auth (認証)
+- **Database**: Turso (LibSQL), Kysely (クエリビルダー), Atlas (マイグレーション)
 - **AI**: Google Gemini API (@google/genai)
 - **Language**: TypeScript
 - **Build**: Vite
@@ -35,6 +37,7 @@ Nano Banana Pro (Gemini Pro 3) やGoogle Notebook LMで生成したスライド�
 - Node.js 18以上
 - pnpm 8以上
 - Google AI Studio APIキー
+- Atlas CLI (`brew install atlas`)
 
 ### インストール
 
@@ -75,11 +78,16 @@ pnpm start
 
 # フォーマット修正
 pnpm format:fix
+
+# データベース操作
+pnpm db:migrate      # マイグレーションファイル生成
+pnpm db:apply        # ローカルDBにマイグレーション適用
+pnpm db:codegen      # DBスキーマから型定義を生成
 ```
 
 ## プロジェクト構成
 
-```
+```text
 ├── app/
 │   ├── routes/              # ルート定義とページコンポーネント
 │   │   ├── _index.tsx      # ランディングページ
@@ -90,6 +98,9 @@ pnpm format:fix
 │   ├── components/         # 再利用可能なコンポーネント
 │   ├── lib/               # ユーティリティ関数
 │   └── root.tsx           # ルートレイアウト
+├── db/
+│   └── schema.sql         # DBスキーマ定義
+├── data/                  # ローカルSQLiteファイル
 ├── docs/                  # 設計ドキュメント
 ├── references/            # 参考実装
 └── public/               # 静的ファイル

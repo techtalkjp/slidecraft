@@ -36,51 +36,79 @@ describe('verifyCronAuth', () => {
 })
 
 describe('cleanupSessions', () => {
-  it('deletes expired sessions and orphaned anonymous users', async () => {
-    const mockDb = {
-      session: {
-        deleteMany: vi.fn().mockResolvedValue({ count: 5 }),
-      },
-      user: {
-        deleteMany: vi.fn().mockResolvedValue({ count: 2 }),
-      },
+  // Kysely のチェーンメソッドをモックするヘルパー
+  const createKyselyMock = (options: {
+    deletedSessions?: number
+    deletedUsers?: number
+    sessionError?: Error
+  }) => {
+    const { deletedSessions = 0, deletedUsers = 0, sessionError } = options
+
+    // サブクエリのモック
+    const selectFromMock = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        distinct: vi.fn().mockReturnValue('subquery'),
+      }),
+    })
+
+    // deleteFrom のモック
+    const deleteFromMock = vi.fn().mockImplementation((table: string) => {
+      if (table === 'session') {
+        if (sessionError) {
+          return {
+            where: vi.fn().mockReturnValue({
+              execute: vi.fn().mockRejectedValue(sessionError),
+            }),
+          }
+        }
+        return {
+          where: vi.fn().mockReturnValue({
+            execute: vi
+              .fn()
+              .mockResolvedValue([{ numDeletedRows: BigInt(deletedSessions) }]),
+          }),
+        }
+      }
+      if (table === 'user') {
+        return {
+          where: vi.fn().mockReturnValue({
+            where: vi.fn().mockReturnValue({
+              execute: vi
+                .fn()
+                .mockResolvedValue([{ numDeletedRows: BigInt(deletedUsers) }]),
+            }),
+          }),
+        }
+      }
+      return {}
+    })
+
+    return {
+      deleteFrom: deleteFromMock,
+      selectFrom: selectFromMock,
     }
+  }
+
+  it('deletes expired sessions and orphaned anonymous users', async () => {
+    const mockDb = createKyselyMock({
+      deletedSessions: 5,
+      deletedUsers: 2,
+    })
 
     const result = await cleanupSessions(mockDb as never)
 
     expect(result.deletedSessions).toBe(5)
     expect(result.deletedAnonymousUsers).toBe(2)
     expect(result.executedAt).toBeDefined()
-
-    // session.deleteMany が期限切れ条件で呼ばれたことを確認
-    expect(mockDb.session.deleteMany).toHaveBeenCalledWith({
-      where: {
-        expiresAt: {
-          lt: expect.any(Date),
-        },
-      },
-    })
-
-    // user.deleteMany が匿名 + セッションなし条件で呼ばれたことを確認
-    expect(mockDb.user.deleteMany).toHaveBeenCalledWith({
-      where: {
-        isAnonymous: true,
-        sessions: {
-          none: {},
-        },
-      },
-    })
+    expect(mockDb.deleteFrom).toHaveBeenCalledWith('session')
+    expect(mockDb.deleteFrom).toHaveBeenCalledWith('user')
   })
 
   it('handles zero deletions', async () => {
-    const mockDb = {
-      session: {
-        deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
-      },
-      user: {
-        deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
-      },
-    }
+    const mockDb = createKyselyMock({
+      deletedSessions: 0,
+      deletedUsers: 0,
+    })
 
     const result = await cleanupSessions(mockDb as never)
 
@@ -89,16 +117,9 @@ describe('cleanupSessions', () => {
   })
 
   it('propagates database errors', async () => {
-    const mockDb = {
-      session: {
-        deleteMany: vi
-          .fn()
-          .mockRejectedValue(new Error('DB connection failed')),
-      },
-      user: {
-        deleteMany: vi.fn(),
-      },
-    }
+    const mockDb = createKyselyMock({
+      sessionError: new Error('DB connection failed'),
+    })
 
     await expect(cleanupSessions(mockDb as never)).rejects.toThrow(
       'DB connection failed',

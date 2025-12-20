@@ -1,4 +1,4 @@
-import { prisma } from '~/lib/db/prisma'
+import { db } from '~/lib/db/kysely'
 import { cleanupSessions, verifyCronAuth } from './+/cleanup'
 import type { Route } from './+types/index'
 
@@ -20,7 +20,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   }
 
   try {
-    const result = await cleanupSessions(prisma)
+    const result = await cleanupSessions(db)
 
     console.log('[Cron] cleanup-sessions:', { success: true, ...result })
 

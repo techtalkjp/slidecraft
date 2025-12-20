@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 SlideCraft is a React Router v7 application for editing and reconstructing AI-generated slides. Built on React Router's SSR framework with TypeScript, Vite, and TailwindCSS v4.
 
-**Tech Stack:** React Router v7, shadcn/ui, TailwindCSS v4, Conform, Vercel AI SDK
+**Tech Stack:** React Router v7, shadcn/ui, TailwindCSS v4, better-auth, Kysely, Atlas, Turso, Google Gemini API
 
 The `references/slidegenius` directory contains a reference implementation for inspiration.
 
@@ -19,6 +19,9 @@ pnpm validate         # Format, lint, typecheck
 pnpm typecheck        # Type check (generates route types first)
 pnpm build            # Build for production
 pnpm start            # Run production build
+pnpm db:migrate       # Generate migration files (Atlas)
+pnpm db:apply         # Apply migrations to local DB
+pnpm db:codegen       # Generate types from DB schema (Kysely)
 ```
 
 ## Architecture
@@ -36,6 +39,20 @@ SSR enabled by default. Build outputs: `build/client/` (static), `build/server/`
 ### Styling
 
 TailwindCSS v4 via Vite plugin. Global styles in `app/app.css`.
+
+### Database
+
+- **Turso**: LibSQL database (SQLite-compatible, edge-ready)
+- **Kysely**: Type-safe query builder with CamelCasePlugin (snake_case DB ↔ camelCase TS)
+- **Atlas**: Schema migration tool (`db/schema.sql` → migrations)
+- **better-auth**: Authentication with anonymous user support
+
+Key files:
+
+- `db/schema.sql`: Canonical schema definition
+- `app/lib/db/kysely.ts`: Kysely client with CamelCasePlugin
+- `app/lib/db/types.ts`: Auto-generated types (via `pnpm db:codegen`)
+- `app/lib/auth/auth.ts`: better-auth configuration with field mappings
 
 ### React Router Auto Routes
 

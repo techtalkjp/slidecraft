@@ -1,7 +1,6 @@
 import { betterAuth } from 'better-auth'
-import { prismaAdapter } from 'better-auth/adapters/prisma'
 import { anonymous } from 'better-auth/plugins'
-import { prisma } from '~/lib/db/prisma'
+import { db } from '~/lib/db/kysely'
 
 // BETTER_AUTH_SECRET を取得
 // 本番環境・Preview環境では env.server.ts で必須チェック済み
@@ -39,9 +38,52 @@ export const auth = betterAuth({
   secret: getSecret(),
   baseURL,
   trustedOrigins,
-  database: prismaAdapter(prisma, {
-    provider: 'sqlite',
-  }),
+  database: {
+    db,
+    type: 'sqlite',
+  },
+  user: {
+    modelName: 'user',
+    fields: {
+      emailVerified: 'email_verified',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+    },
+  },
+  session: {
+    modelName: 'session',
+    fields: {
+      expiresAt: 'expires_at',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+      ipAddress: 'ip_address',
+      userAgent: 'user_agent',
+      userId: 'user_id',
+    },
+  },
+  account: {
+    modelName: 'account',
+    fields: {
+      accountId: 'account_id',
+      providerId: 'provider_id',
+      userId: 'user_id',
+      accessToken: 'access_token',
+      refreshToken: 'refresh_token',
+      idToken: 'id_token',
+      accessTokenExpiresAt: 'access_token_expires_at',
+      refreshTokenExpiresAt: 'refresh_token_expires_at',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+    },
+  },
+  verification: {
+    modelName: 'verification',
+    fields: {
+      expiresAt: 'expires_at',
+      createdAt: 'created_at',
+      updatedAt: 'updated_at',
+    },
+  },
   plugins: [anonymous()],
 })
 

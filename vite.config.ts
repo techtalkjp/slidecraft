@@ -10,9 +10,6 @@ export default defineConfig(({ isSsrBuild }) => ({
   define: {
     'import.meta.env.VERCEL_ENV': JSON.stringify(process.env.VERCEL_ENV),
   },
-  ssr: {
-    external: ['@prisma/client/runtime/client'],
-  },
   build: {
     rollupOptions: isSsrBuild ? { input: './server/app.ts' } : undefined,
   },
