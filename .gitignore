@@ -3,6 +3,7 @@
 # Environment files
 .env
 .env.production
+.env.preview
 
 /node_modules/
 
