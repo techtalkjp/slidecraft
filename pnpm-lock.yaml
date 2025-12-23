@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@coji/durably':
-        specifier: 0.3.0
-        version: 0.3.0(kysely@0.28.9)(zod@4.1.13)
+        specifier: 0.4.0
+        version: 0.4.0(kysely@0.28.9)(zod@4.1.13)
       '@google/genai':
         specifier: 1.30.0
         version: 1.30.0
@@ -426,8 +426,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@coji/durably@0.3.0':
-    resolution: {integrity: sha512-ewK8kV+0p2E+CUOaEGp72gsK0mQGYoZVlWt5GYkwT6zW6t2xBRJyg3AQa2lNBszX6iCwUoaPbOKb8UXokmWO6Q==}
+  '@coji/durably@0.4.0':
+    resolution: {integrity: sha512-wcLrhVtuXth42irXMwZNZ6JB2/YOmQPgIXchs1/aa/aS6r2s1l1hHt81UvTa4fQXwvQtQXPZuP2yzupJJMdFgg==}
     peerDependencies:
       kysely: '>=0.27.0'
       zod: '>=4.0.0'
@@ -4829,7 +4829,7 @@ snapshots:
   '@biomejs/cli-win32-x64@2.3.8':
     optional: true
 
-  '@coji/durably@0.3.0(kysely@0.28.9)(zod@4.1.13)':
+  '@coji/durably@0.4.0(kysely@0.28.9)(zod@4.1.13)':
     dependencies:
       kysely: 0.28.9
       ulidx: 2.4.1

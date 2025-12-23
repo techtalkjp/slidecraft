@@ -5,13 +5,22 @@ import devtoolsJson from 'vite-plugin-devtools-json'
 import tsconfigPaths from 'vite-tsconfig-paths'
 
 // COOP/COEP ヘッダーを追加するプラグイン（SQLocal 用）
+// /test/durably ルートと関連 worker に適用して、OAuth や外部リソースへの影響を回避
 function coopCoepPlugin(): Plugin {
   return {
     name: 'coop-coep',
     configureServer(server) {
-      server.middlewares.use((_req, res, next) => {
-        res.setHeader('Cross-Origin-Opener-Policy', 'same-origin')
-        res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp')
+      server.middlewares.use((req, res, next) => {
+        const url = req.url ?? ''
+        // /test/durably ルートと SQLocal/sqlite-wasm の worker ファイルにヘッダーを適用
+        const needsCoopCoep =
+          url.startsWith('/test/durably') ||
+          url.includes('sqlocal') ||
+          url.includes('sqlite')
+        if (needsCoopCoep) {
+          res.setHeader('Cross-Origin-Opener-Policy', 'same-origin')
+          res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp')
+        }
         next()
       })
     },
@@ -32,13 +41,6 @@ export default defineConfig(({ isSsrBuild }) => ({
   },
   build: {
     rollupOptions: isSsrBuild ? { input: './server/app.ts' } : undefined,
-  },
-  // SQLocal (SharedArrayBuffer) 用のヘッダー
-  server: {
-    headers: {
-      'Cross-Origin-Opener-Policy': 'same-origin',
-      'Cross-Origin-Embedder-Policy': 'require-corp',
-    },
   },
   // SQLocal の Worker ファイルを最適化から除外
   optimizeDeps: {

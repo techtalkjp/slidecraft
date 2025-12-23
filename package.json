@@ -29,7 +29,7 @@
     "turso:shell": "turso db shell slidecraft"
   },
   "dependencies": {
-    "@coji/durably": "0.3.0",
+    "@coji/durably": "0.4.0",
     "@google/genai": "1.30.0",
     "@libsql/client": "0.8.1",
     "@libsql/kysely-libsql": "0.4.1",

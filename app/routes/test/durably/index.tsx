@@ -3,10 +3,12 @@
  *
  * ブラウザ上で Durably (SQLite ベースのワークフローエンジン) を試すためのテストルート
  * クライアントサイドのみで動作
+ *
+ * 外部リソース: SQLocal (OPFS SQLite), Durably ワークフローエンジン
  */
-import { createDurably, type Run } from '@coji/durably'
+import { createDurably, defineJob, type Run } from '@coji/durably'
 import { Loader2 } from 'lucide-react'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { SQLocalKysely } from 'sqlocal/kysely'
 import { z } from 'zod'
 import { Button } from '~/components/ui/button'
@@ -18,85 +20,126 @@ import {
   CardTitle,
 } from '~/components/ui/card'
 
+// ジョブの出力スキーマ
+const jobOutputSchema = z.object({
+  steps: z.array(z.string()),
+  total: z.number(),
+})
+type JobOutput = z.infer<typeof jobOutputSchema>
+
+// テスト用ジョブを定義（モジュールレベル）
+const testJobDef = defineJob({
+  name: 'test-multi-step',
+  input: z.object({ count: z.number() }),
+  output: jobOutputSchema,
+  run: async (step, payload) => {
+    const steps: string[] = []
+
+    // ステップ1: 初期化
+    const initResult = await step.run('initialize', async () => {
+      await sleep(1000)
+      return `Initialized with count: ${payload.count}`
+    })
+    steps.push(initResult)
+
+    // ステップ2: カウントアップ（複数回）
+    for (let i = 1; i <= payload.count; i++) {
+      const result = await step.run(`count-${i}`, async () => {
+        await sleep(500)
+        return `Step ${i} completed`
+      })
+      steps.push(result)
+    }
+
+    // ステップ3: 完了処理
+    const finalResult = await step.run('finalize', async () => {
+      await sleep(500)
+      return `Finalized at ${new Date().toISOString()}`
+    })
+    steps.push(finalResult)
+
+    return { steps, total: steps.length }
+  },
+})
+
 // Durably インスタンス（シングルトン）
-let durably: ReturnType<typeof createDurably> | null = null
-let testJob: ReturnType<ReturnType<typeof createDurably>['defineJob']> | null =
-  null
+let durablyInstance: ReturnType<typeof createDurably> | null = null
+let testJobHandle: ReturnType<
+  ReturnType<typeof createDurably>['register']
+> | null = null
+let initPromise: Promise<void> | null = null
 
 function getDurably() {
-  if (!durably) {
-    console.log('[Durably] Creating SQLocalKysely...')
+  if (!durablyInstance) {
     const { dialect } = new SQLocalKysely('durably-test.sqlite3')
-    console.log('[Durably] SQLocalKysely created, creating durably...')
-    durably = createDurably({
+    durablyInstance = createDurably({
       dialect,
       pollingInterval: 100,
       heartbeatInterval: 500,
       staleThreshold: 3000,
     })
 
-    // テスト用ジョブを定義
-    testJob = durably.defineJob(
-      {
-        name: 'test-multi-step',
-        input: z.object({ count: z.number() }),
-        output: z.object({
-          steps: z.array(z.string()),
-          total: z.number(),
-        }),
-      },
-      async (step, payload) => {
-        const steps: string[] = []
+    // ジョブを登録
+    testJobHandle = durablyInstance.register(testJobDef)
 
-        // ステップ1: 初期化
-        const initResult = await step.run('initialize', async () => {
-          await sleep(1000) // 1秒待機（処理をシミュレート）
-          return `Initialized with count: ${payload.count}`
-        })
-        steps.push(initResult)
-
-        // ステップ2: カウントアップ（複数回）
-        for (let i = 1; i <= payload.count; i++) {
-          const result = await step.run(`count-${i}`, async () => {
-            await sleep(500) // 0.5秒待機
-            return `Step ${i} completed`
-          })
-          steps.push(result)
-        }
-
-        // ステップ3: 完了処理
-        const finalResult = await step.run('finalize', async () => {
-          await sleep(500)
-          return `Finalized at ${new Date().toISOString()}`
-        })
-        steps.push(finalResult)
-
-        return {
-          steps,
-          total: steps.length,
-        }
-      },
-    )
+    // マイグレーションを一度だけ実行
+    initPromise = durablyInstance.migrate()
   }
-  if (!testJob) {
+
+  if (!testJobHandle) {
     throw new Error('testJob is not initialized')
   }
-  return { durably, testJob }
+
+  return { durably: durablyInstance, testJob: testJobHandle, initPromise }
 }
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-export default function DurablyTestPage() {
-  const [initialized, setInitialized] = useState(false)
-  const [running, setRunning] = useState(false)
-  const [currentRun, setCurrentRun] = useState<Run | null>(null)
-  const [result, setResult] = useState<{
-    steps: string[]
-    total: number
-  } | null>(null)
+/**
+ * Durably 初期化フック (StrictMode 対応)
+ */
+function useDurably() {
+  const [ready, setReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function init() {
+      try {
+        const { durably, initPromise } = getDurably()
+        await initPromise
+
+        if (cancelled) return
+
+        durably.start()
+        setReady(true)
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Failed to initialize')
+        }
+      }
+    }
+
+    init()
+
+    return () => {
+      cancelled = true
+      if (durablyInstance) {
+        durablyInstance.stop()
+      }
+    }
+  }, [])
+
+  return { ready, error }
+}
+
+/**
+ * イベントログ購読フック
+ */
+function useEventLogs() {
   const [logs, setLogs] = useState<string[]>([])
 
   const addLog = useCallback((message: string) => {
@@ -106,54 +149,53 @@ export default function DurablyTestPage() {
     ])
   }, [])
 
-  // 初期化
   useEffect(() => {
-    const init = async () => {
-      console.log('[Durably] Starting initialization...')
-      try {
-        console.log('[Durably] Getting durably instance...')
-        const { durably } = getDurably()
-        console.log('[Durably] Running migrate...')
-        await durably.migrate()
-        console.log('[Durably] Starting worker...')
-        durably.start()
-        setInitialized(true)
-        addLog('Durably initialized and started')
-        console.log('[Durably] Initialization complete!')
+    const { durably } = getDurably()
 
-        // イベント購読
-        durably.on('run:start', (event) => {
-          addLog(`Run started: ${event.runId}`)
-        })
-        durably.on('step:start', (event) => {
-          addLog(`Step started: ${event.stepName}`)
-        })
-        durably.on('step:complete', (event) => {
-          addLog(`Step completed: ${event.stepName}`)
-        })
-        durably.on('run:complete', (event) => {
-          addLog(`Run completed: ${event.runId}`)
-        })
-        durably.on('run:fail', (event) => {
-          addLog(`Run failed: ${event.error}`)
-        })
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to initialize')
-        addLog(`Error: ${err}`)
-      }
-    }
-    init()
+    const unsubscribers = [
+      durably.on('run:start', (event) => {
+        addLog(`Run started: ${event.runId}`)
+      }),
+      durably.on('step:start', (event) => {
+        addLog(`Step started: ${event.stepName}`)
+      }),
+      durably.on('step:complete', (event) => {
+        addLog(`Step completed: ${event.stepName}`)
+      }),
+      durably.on('run:complete', (event) => {
+        addLog(`Run completed: ${event.runId}`)
+      }),
+      durably.on('run:fail', (event) => {
+        addLog(`Run failed: ${event.error}`)
+      }),
+    ]
 
     return () => {
-      if (durably) {
-        durably.stop()
-        addLog('Durably stopped')
+      for (const unsub of unsubscribers) {
+        unsub()
       }
     }
   }, [addLog])
 
-  // ジョブ実行
-  const runJob = async () => {
+  return { logs, addLog }
+}
+
+export default function DurablyTestPage() {
+  const { ready, error: initError } = useDurably()
+  const { logs, addLog } = useEventLogs()
+
+  const [running, setRunning] = useState(false)
+  const [currentRun, setCurrentRun] = useState<Run | null>(null)
+  const [result, setResult] = useState<JobOutput | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  // running 状態を ref で保持（useCallback の依存を避ける）
+  const runningRef = useRef(running)
+  runningRef.current = running
+
+  const runJob = useCallback(async () => {
+    if (runningRef.current) return
+
     setRunning(true)
     setResult(null)
     setError(null)
@@ -169,16 +211,18 @@ export default function DurablyTestPage() {
       // 実行情報を取得
       const run = await testJob.getRun(id)
       setCurrentRun(run)
-      const typedOutput = output as { steps: string[]; total: number }
-      setResult(typedOutput)
-      addLog(`Total steps: ${typedOutput.total}`)
+
+      // zod で型安全に変換
+      const parsedOutput = jobOutputSchema.parse(output)
+      setResult(parsedOutput)
+      addLog(`Total steps: ${parsedOutput.total}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Job failed')
       addLog(`Job error: ${err}`)
     } finally {
       setRunning(false)
     }
-  }
+  }, [addLog])
 
   return (
     <div className="container mx-auto max-w-2xl p-8">
@@ -193,15 +237,22 @@ export default function DurablyTestPage() {
           {/* ステータス */}
           <div className="flex items-center gap-2">
             <div
-              className={`h-3 w-3 rounded-full ${initialized ? 'bg-emerald-500' : 'bg-slate-300'}`}
+              className={`h-3 w-3 rounded-full ${ready ? 'bg-emerald-500' : 'bg-slate-300'}`}
             />
             <span className="text-sm">
-              {initialized ? '初期化完了' : '初期化中...'}
+              {ready ? '初期化完了' : '初期化中...'}
             </span>
           </div>
 
+          {/* 初期化エラー */}
+          {initError && (
+            <div className="rounded-md bg-red-50 p-4">
+              <p className="text-red-800">初期化エラー: {initError}</p>
+            </div>
+          )}
+
           {/* 実行ボタン */}
-          <Button onClick={runJob} disabled={!initialized || running}>
+          <Button onClick={runJob} disabled={!ready || running}>
             {running ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
