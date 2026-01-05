@@ -65,7 +65,7 @@ function pctToInches(pct: number, dimension: 'width' | 'height'): number {
 function fontSizePctToPt(fontSizePct: number): number {
   // PPTXスライドの高さ（pt）: 5.625インチ * 72pt/インチ = 405pt
   const slideHeightPt = SLIDE_HEIGHT * 72
-  const scaleFactor = 1.2 // 補正なし（構造化出力により精度向上）
+  const scaleFactor = 1.0 // 補正なし（構造化出力により精度向上）
   return Math.round((fontSizePct / 100) * slideHeightPt * scaleFactor)
 }
 
@@ -400,32 +400,36 @@ export interface GeneratePptxResult {
 }
 
 /**
- * スライド解析結果からPPTXを生成
+ * 複数スライド用の入力オプション
  */
-export async function generatePptx(
-  options: GeneratePptxOptions,
-): Promise<GeneratePptxResult> {
-  const {
-    analysis,
-    graphics,
-    fileName = `${analysis.slideTitle || 'slide'}.pptx`,
-  } = options
+export interface SlideData {
+  analysis: SlideAnalysis
+  graphics: ExtractedGraphic[]
+}
 
-  // PptxGenJSを動的にロード（約1MBの大きなライブラリのため遅延ロード）
-  const PptxGenJS = await getPptxGenJS()
-  const pptx = new PptxGenJS()
-  pptx.layout = 'LAYOUT_16x9'
-  pptx.title = analysis.slideTitle
+export interface GenerateMultiSlidePptxOptions {
+  slides: SlideData[]
+  fileName?: string
+  title?: string
+}
 
-  const slide = pptx.addSlide()
-
+/**
+ * 1つのスライドに要素を追加（共通ロジック）
+ *
+ * generatePptx と generateMultiSlidePptx の両方から使用される
+ */
+async function addSlideElements(
+  pptx: PptxGenJS,
+  slide: PptxGenJS.Slide,
+  analysis: SlideAnalysis,
+  graphics: ExtractedGraphic[],
+): Promise<void> {
   // 背景色を設定
   slide.background = { color: analysis.backgroundColor }
 
   // 1. グラフィック要素を追加（最背面に配置）
   for (const graphic of graphics) {
     const { region, imageBlob } = graphic
-    // Blob から Data URL に遅延変換（メモリ効率向上）
     const dataUrl = await blobToDataUrl(imageBlob)
     const base64Data = extractBase64FromDataUrl(dataUrl)
 
@@ -484,6 +488,28 @@ export async function generatePptx(
 
   // 4. テーブル要素を追加（テキストの後）
   addTableElements(slide, analysis.tableElements)
+}
+
+/**
+ * スライド解析結果からPPTXを生成
+ */
+export async function generatePptx(
+  options: GeneratePptxOptions,
+): Promise<GeneratePptxResult> {
+  const {
+    analysis,
+    graphics,
+    fileName = `${analysis.slideTitle || 'slide'}.pptx`,
+  } = options
+
+  // PptxGenJSを動的にロード（約1MBの大きなライブラリのため遅延ロード）
+  const PptxGenJS = await getPptxGenJS()
+  const pptx = new PptxGenJS()
+  pptx.layout = 'LAYOUT_16x9'
+  pptx.title = analysis.slideTitle
+
+  const slide = pptx.addSlide()
+  await addSlideElements(pptx, slide, analysis, graphics)
 
   // Blobとして出力（ブラウザ環境）
   const result = await pptx.write({ outputType: 'blob' })
@@ -509,4 +535,45 @@ export function downloadPptx(result: GeneratePptxResult): void {
   link.click()
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
+}
+
+/**
+ * 複数スライドを1つのPPTXファイルに生成
+ */
+export async function generateMultiSlidePptx(
+  options: GenerateMultiSlidePptxOptions,
+): Promise<GeneratePptxResult> {
+  const {
+    slides,
+    fileName = 'presentation.pptx',
+    title = 'Presentation',
+  } = options
+
+  if (slides.length === 0) {
+    throw new Error('スライドがありません')
+  }
+
+  // PptxGenJSを動的にロード
+  const PptxGenJS = await getPptxGenJS()
+  const pptx = new PptxGenJS()
+  pptx.layout = 'LAYOUT_16x9'
+  pptx.title = title
+
+  // 各スライドを追加
+  for (const slideData of slides) {
+    const { analysis, graphics } = slideData
+    const slide = pptx.addSlide()
+    await addSlideElements(pptx, slide, analysis, graphics)
+  }
+
+  // Blobとして出力
+  const result = await pptx.write({ outputType: 'blob' })
+  if (!(result instanceof Blob)) {
+    throw new Error('PPTX生成に失敗しました: 出力がBlobではありません')
+  }
+
+  return {
+    blob: result,
+    fileName,
+  }
 }

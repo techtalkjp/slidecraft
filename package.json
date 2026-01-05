@@ -29,10 +29,12 @@
     "turso:shell": "turso db shell slidecraft"
   },
   "dependencies": {
-    "@coji/durably": "0.4.0",
+    "@coji/durably": "0.7.0",
+    "@coji/durably-react": "0.7.0",
     "@google/genai": "1.30.0",
     "@libsql/client": "0.8.1",
     "@libsql/kysely-libsql": "0.4.1",
+    "@radix-ui/react-popover": "1.1.15",
     "@react-router/node": "7.10.0",
     "@react-router/serve": "7.10.0",
     "@upstash/ratelimit": "2.0.7",

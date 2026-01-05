@@ -6,19 +6,25 @@ import { Button } from '~/components/ui/button'
 import { trackPdfExported } from '~/lib/analytics'
 import { downloadPdf, generatePdfFromSlides } from '~/lib/pdf-generator.client'
 import type { Slide } from '~/lib/types'
+import { PptxExportButton } from './components/pptx-export-button'
 
 interface EditorActionsProps {
   projectId: string
+  projectName: string
   slides: Slide[]
 }
 
-export function EditorActions({ projectId, slides }: EditorActionsProps) {
+export function EditorActions({
+  projectId,
+  projectName,
+  slides,
+}: EditorActionsProps) {
   const [isExporting, setIsExporting] = useState(false)
   const [exportProgress, setExportProgress] = useState<{
     current: number
     total: number
   } | null>(null)
-  const [_error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [container, setContainer] = useState<HTMLElement | null>(null)
 
   // ヘッダ内のコンテナ要素を取得
@@ -58,11 +64,11 @@ export function EditorActions({ projectId, slides }: EditorActionsProps) {
 
   const content = (
     <>
-      {_error && (
+      {error && (
         <Alert variant="destructive" className="mb-2">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="flex items-center justify-between">
-            <span>{_error}</span>
+            <span>{error}</span>
             <Button
               variant="ghost"
               size="sm"
@@ -94,6 +100,13 @@ export function EditorActions({ projectId, slides }: EditorActionsProps) {
           </>
         )}
       </Button>
+
+      {/* PPTX書き出しボタン */}
+      <PptxExportButton
+        projectId={projectId}
+        projectName={projectName}
+        slides={slides}
+      />
     </>
   )
 

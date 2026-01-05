@@ -1,9 +1,13 @@
-import { useEffect, useState } from 'react'
+import { DurablyProvider } from '@coji/durably-react'
+import { Loader2, RefreshCw } from 'lucide-react'
+import { Component, useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router'
 import { AppSidebar } from '~/components/layout/app-sidebar'
 import { Main } from '~/components/layout/main'
+import { Button } from '~/components/ui/button'
 import { SidebarProvider, SidebarTrigger } from '~/components/ui/sidebar'
 import { useBreadcrumbs } from '~/hooks/use-breadcrumbs'
+import { durablyPromise } from '~/jobs'
 import { auth } from '~/lib/auth/auth'
 import { sessionContext } from '~/lib/auth/session.context'
 import { cn } from '~/lib/utils'
@@ -31,6 +35,55 @@ export const middleware: Route.MiddlewareFunction[] = [
     return response
   },
 ]
+
+function DurablyFallback() {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80">
+      <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+    </div>
+  )
+}
+
+/**
+ * Durably 初期化エラー時のフォールバック UI
+ */
+function DurablyErrorFallback({ error }: { error: Error }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80">
+      <div className="text-center">
+        <p className="mb-4 text-red-600">
+          ワークフローエンジンの初期化に失敗しました
+        </p>
+        <p className="mb-4 text-sm text-gray-600">{error.message}</p>
+        <Button onClick={() => window.location.reload()}>
+          <RefreshCw className="mr-2 h-4 w-4" />
+          再読み込み
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * DurablyProvider のエラーをキャッチする ErrorBoundary
+ */
+class DurablyErrorBoundary extends Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  state = { hasError: false, error: null as Error | null }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error }
+  }
+
+  render() {
+    if (this.state.hasError && this.state.error) {
+      return <DurablyErrorFallback error={this.state.error} />
+    }
+    return this.props.children
+  }
+}
 
 function AppLayoutContent({ isEditorPage }: { isEditorPage: boolean }) {
   const { Breadcrumbs } = useBreadcrumbs()
@@ -90,8 +143,12 @@ export default function AppLayout() {
   }, [isEditorPage])
 
   return (
-    <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
-      <AppLayoutContent isEditorPage={isEditorPage} />
-    </SidebarProvider>
+    <DurablyErrorBoundary>
+      <DurablyProvider durably={durablyPromise} fallback={<DurablyFallback />}>
+        <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
+          <AppLayoutContent isEditorPage={isEditorPage} />
+        </SidebarProvider>
+      </DurablyProvider>
+    </DurablyErrorBoundary>
   )
 }

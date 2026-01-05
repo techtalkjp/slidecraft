@@ -9,8 +9,11 @@ importers:
   .:
     dependencies:
       '@coji/durably':
-        specifier: 0.4.0
-        version: 0.4.0(kysely@0.28.9)(zod@4.1.13)
+        specifier: 0.7.0
+        version: 0.7.0(kysely@0.28.9)(zod@4.1.13)
+      '@coji/durably-react':
+        specifier: 0.7.0
+        version: 0.7.0(@coji/durably@0.7.0(kysely@0.28.9)(zod@4.1.13))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@google/genai':
         specifier: 1.30.0
         version: 1.30.0
@@ -20,6 +23,9 @@ importers:
       '@libsql/kysely-libsql':
         specifier: 0.4.1
         version: 0.4.1(kysely@0.28.9)
+      '@radix-ui/react-popover':
+        specifier: 1.1.15
+        version: 1.1.15(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@react-router/node':
         specifier: 7.10.0
         version: 7.10.0(react-router@7.10.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(typescript@5.9.3)
@@ -426,11 +432,21 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@coji/durably@0.4.0':
-    resolution: {integrity: sha512-wcLrhVtuXth42irXMwZNZ6JB2/YOmQPgIXchs1/aa/aS6r2s1l1hHt81UvTa4fQXwvQtQXPZuP2yzupJJMdFgg==}
+  '@coji/durably-react@0.7.0':
+    resolution: {integrity: sha512-RiKyg4QrsGiz3vSl9xRsejuyxFlWSdN2bqQSKqum49VdwXZ0z8vzDK9AzKyNu/72frSP5MVQxTUcHFnn+clxsw==}
     peerDependencies:
-      kysely: '>=0.27.0'
-      zod: '>=4.0.0'
+      '@coji/durably': '*'
+      react: '>=19.0.0'
+      react-dom: '>=19.0.0'
+    peerDependenciesMeta:
+      '@coji/durably':
+        optional: true
+
+  '@coji/durably@0.7.0':
+    resolution: {integrity: sha512-g5qhVVvk9w4vTJZ6h1GHzHHwQ9O/AaPkSIUkRO9Ff+SY/S+u39Lme/YR5gSAyMuNmCs32azyUfAlOE4Br1EEPQ==}
+    peerDependencies:
+      kysely: ^0.27.0
+      zod: ^4.0.0
 
   '@csstools/color-helpers@5.1.0':
     resolution: {integrity: sha512-S11EXWJyy0Mz5SYvRmY8nJYTFFd1LCNV+7cXyAgQtOOuzb4EsgfqDufL+9esx72/eLhsRdGZwaldu/h+E4t4BA==}
@@ -4450,6 +4466,7 @@ packages:
   whatwg-encoding@3.1.1:
     resolution: {integrity: sha512-6qN4hJdMwfYBtE3YBTTHhoeuUrDBPZmbQaxWAqSALV/MeEnR5z1xd8UKud2RAkFoPkmB+hli1TZSnyi84xz1vQ==}
     engines: {node: '>=18'}
+    deprecated: Use @exodus/bytes instead for a more spec-conformant and faster implementation
 
   whatwg-mimetype@3.0.0:
     resolution: {integrity: sha512-nt+N2dzIutVRxARx1nghPKGv1xHikU7HKdfafKkLNLindmPU/ch3U31NOCGGA/dmPcmb1VlofO0vnKAcsm0o/Q==}
@@ -4829,7 +4846,14 @@ snapshots:
   '@biomejs/cli-win32-x64@2.3.8':
     optional: true
 
-  '@coji/durably@0.4.0(kysely@0.28.9)(zod@4.1.13)':
+  '@coji/durably-react@0.7.0(@coji/durably@0.7.0(kysely@0.28.9)(zod@4.1.13))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
+    dependencies:
+      react: 19.2.0
+      react-dom: 19.2.0(react@19.2.0)
+    optionalDependencies:
+      '@coji/durably': 0.7.0(kysely@0.28.9)(zod@4.1.13)
+
+  '@coji/durably@0.7.0(kysely@0.28.9)(zod@4.1.13)':
     dependencies:
       kysely: 0.28.9
       ulidx: 2.4.1
