@@ -1,14 +1,9 @@
-import { FileSpreadsheet } from 'lucide-react'
-import { useCallback, useState } from 'react'
-import { toast } from 'sonner'
+import { useState } from 'react'
 import { ApiKeyDialog } from '~/components/api-key-dialog'
-import { Button } from '~/components/ui/button'
-import { trackPptxExportClick } from '~/lib/analytics'
-import { loadCurrentSlideImage } from '~/lib/slides-repository.client'
 import type { Slide } from '~/lib/types'
 import { CandidateImagesGrid } from './components/candidate-images-grid'
 import { GenerationControlForm } from './components/generation-control-form'
-import { PptxExportDialog } from './components/pptx-export-dialog'
+import { PptxBatchExportPanel } from './components/pptx-batch-export-panel'
 import { useCostEstimate } from './hooks/use-cost-estimate'
 import { useSlideGeneration } from './hooks/use-slide-generation'
 import { useSlideImages } from './hooks/use-slide-images'
@@ -17,7 +12,6 @@ interface ControlPanelProps {
   projectId: string
   projectName: string
   slide: Slide
-  slideNumber: number
   allSlides: Slide[]
   onSlideUpdate: () => void
 }
@@ -26,7 +20,6 @@ export function ControlPanel({
   projectId,
   projectName,
   slide,
-  slideNumber,
   allSlides,
   onSlideUpdate,
 }: ControlPanelProps) {
@@ -86,57 +79,12 @@ export function ControlPanel({
     resetGenerationCost,
   })
 
-  // ========================================
-  // PPTXエクスポート関連の状態
-  // ========================================
-
-  const [showPptxDialog, setShowPptxDialog] = useState(false)
-  const [showPptxApiKeyDialog, setShowPptxApiKeyDialog] = useState(false)
-  const [currentSlideBlob, setCurrentSlideBlob] = useState<Blob | null>(null)
-
-  const handleOpenPptxDialog = useCallback(async () => {
-    trackPptxExportClick()
-    try {
-      const blob = await loadCurrentSlideImage(projectId, slide)
-      setCurrentSlideBlob(blob)
-      setShowPptxDialog(true)
-    } catch (error) {
-      console.error('スライド画像の読み込みに失敗:', error)
-      toast.error('スライド画像の読み込みに失敗しました')
-    }
-  }, [projectId, slide])
-
-  const handlePptxApiKeyRequired = useCallback(() => {
-    setShowPptxDialog(false)
-    setShowPptxApiKeyDialog(true)
-  }, [])
-
-  const handlePptxApiKeySaved = useCallback(() => {
-    setShowPptxApiKeyDialog(false)
-    setShowPptxDialog(true)
-  }, [])
-
   return (
     <>
       <ApiKeyDialog
         open={showApiKeyDialog}
         onOpenChange={setShowApiKeyDialog}
         onSaved={handleGenerate}
-      />
-
-      <ApiKeyDialog
-        open={showPptxApiKeyDialog}
-        onOpenChange={setShowPptxApiKeyDialog}
-        onSaved={handlePptxApiKeySaved}
-      />
-
-      <PptxExportDialog
-        open={showPptxDialog}
-        onOpenChange={setShowPptxDialog}
-        imageBlob={currentSlideBlob}
-        projectName={projectName}
-        slideNumber={slideNumber}
-        onApiKeyRequired={handlePptxApiKeyRequired}
       />
 
       <div className="flex h-full flex-col bg-white">
@@ -178,30 +126,13 @@ export function ControlPanel({
           </div>
         </div>
 
-        {/* スライドエクスポート（下部固定） */}
+        {/* PPTX一括エクスポート（下部固定） */}
         <div className="shrink-0 border-t border-slate-200">
-          <div className="flex h-8 items-center border-b border-slate-200 bg-white px-3">
-            <h3 className="text-xs font-semibold text-slate-700">
-              スライドエクスポート
-            </h3>
-          </div>
-          <div className="space-y-3 p-4">
-            <div className="group relative">
-              {/* グラデーションボーダー */}
-              <div className="absolute -inset-0.5 rounded-md bg-linear-to-r from-pink-500 via-purple-500 to-blue-500 opacity-75 blur-sm transition-all duration-500 group-hover:opacity-100 group-hover:blur-md" />
-              <Button
-                onClick={handleOpenPptxDialog}
-                size="sm"
-                className="relative w-full bg-white text-slate-700 hover:bg-slate-50"
-              >
-                <FileSpreadsheet className="mr-2 h-4 w-4" />
-                PPTXエクスポート
-              </Button>
-            </div>
-            <p className="text-xs text-slate-500">
-              現在のスライドを編集可能なPowerPoint形式でダウンロード
-            </p>
-          </div>
+          <PptxBatchExportPanel
+            projectId={projectId}
+            projectName={projectName}
+            slides={allSlides}
+          />
         </div>
       </div>
     </>

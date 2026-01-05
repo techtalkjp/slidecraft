@@ -222,3 +222,27 @@ export function getCostMessageJPY(
 ): string {
   return `入力: ${formatCostJPY(estimate.inputCost, exchangeRate)} / 出力: ${formatCostJPY(estimate.outputCost, exchangeRate)} / 合計: ${formatCostJPY(estimate.totalCost, exchangeRate)}`
 }
+
+/**
+ * PPTX一括エクスポートのコストを計算
+ *
+ * 1スライドあたりのコスト:
+ * - 画像入力: $0.0011 (IMAGE_PRICING.imageInputPerImage)
+ * - AI解析出力: 約$0.002（テキスト解析の出力トークン推定）
+ *
+ * @param slideCount スライド枚数
+ * @returns コスト見積もり
+ */
+export function calculateBatchPptxCost(slideCount: number): CostEstimate {
+  // 1スライドあたり: 画像入力 + AI解析出力トークン推定
+  const inputPerSlide = IMAGE_PRICING.imageInputPerImage
+  const outputPerSlide = 0.002 // AI解析の出力トークン推定（約$0.002/スライド）
+
+  return {
+    inputCost: slideCount * inputPerSlide,
+    outputCost: slideCount * outputPerSlide,
+    totalCost: slideCount * (inputPerSlide + outputPerSlide),
+    inputTokens: 0, // 画像入力はトークンではなく画像単位
+    outputTokens: 0,
+  }
+}

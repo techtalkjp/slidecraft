@@ -18,7 +18,7 @@ export function EditorActions({ projectId, slides }: EditorActionsProps) {
     current: number
     total: number
   } | null>(null)
-  const [_error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [container, setContainer] = useState<HTMLElement | null>(null)
 
   // ヘッダ内のコンテナ要素を取得
@@ -58,11 +58,11 @@ export function EditorActions({ projectId, slides }: EditorActionsProps) {
 
   const content = (
     <>
-      {_error && (
+      {error && (
         <Alert variant="destructive" className="mb-2">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription className="flex items-center justify-between">
-            <span>{_error}</span>
+            <span>{error}</span>
             <Button
               variant="ghost"
               size="sm"

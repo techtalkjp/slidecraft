@@ -1,17 +1,14 @@
 /**
- * ジョブ定義
- *
- * Durably で実行するワークフロージョブを定義
+ * テスト用マルチステップジョブ
  */
 import { defineJob } from '@coji/durably'
 import { z } from 'zod'
-import { durably } from './durably'
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-const testJobDef = defineJob({
+export const testMultiStepJob = defineJob({
   name: 'test-multi-step',
   input: z.object({ count: z.number() }),
   output: z.object({
@@ -44,5 +41,3 @@ const testJobDef = defineJob({
     return { steps, total: steps.length }
   },
 })
-
-export const testJob = durably.register(testJobDef)

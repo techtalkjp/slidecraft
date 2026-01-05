@@ -5,16 +5,18 @@ import devtoolsJson from 'vite-plugin-devtools-json'
 import tsconfigPaths from 'vite-tsconfig-paths'
 
 // COOP/COEP ヘッダーを追加するプラグイン（SQLocal 用）
-// /test/durably ルートと関連 worker に適用して、OAuth や外部リソースへの影響を回避
+// Durably を使用するルートと関連 worker に適用して、OPFS 永続化を有効化
+// 注意: COOP/COEP は OAuth ポップアップなどに影響するため、必要なルートのみに適用
 function coopCoepPlugin(): Plugin {
   return {
     name: 'coop-coep',
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
         const url = req.url ?? ''
-        // /test/durably ルートと SQLocal/sqlite-wasm の worker ファイルにヘッダーを適用
+        // Durably を使用するルートと SQLocal/sqlite-wasm の worker ファイルにヘッダーを適用
         const needsCoopCoep =
           url.startsWith('/test/durably') ||
+          url.includes('/edit') || // エディタページ
           url.includes('sqlocal') ||
           url.includes('sqlite')
         if (needsCoopCoep) {

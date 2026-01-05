@@ -400,6 +400,20 @@ export interface GeneratePptxResult {
 }
 
 /**
+ * 複数スライド用の入力オプション
+ */
+export interface SlideData {
+  analysis: SlideAnalysis
+  graphics: ExtractedGraphic[]
+}
+
+export interface GenerateMultiSlidePptxOptions {
+  slides: SlideData[]
+  fileName?: string
+  title?: string
+}
+
+/**
  * スライド解析結果からPPTXを生成
  */
 export async function generatePptx(
@@ -509,4 +523,104 @@ export function downloadPptx(result: GeneratePptxResult): void {
   link.click()
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
+}
+
+/**
+ * 複数スライドを1つのPPTXファイルに生成
+ */
+export async function generateMultiSlidePptx(
+  options: GenerateMultiSlidePptxOptions,
+): Promise<GeneratePptxResult> {
+  const {
+    slides,
+    fileName = 'presentation.pptx',
+    title = 'Presentation',
+  } = options
+
+  if (slides.length === 0) {
+    throw new Error('スライドがありません')
+  }
+
+  // PptxGenJSを動的にロード
+  const PptxGenJS = await getPptxGenJS()
+  const pptx = new PptxGenJS()
+  pptx.layout = 'LAYOUT_16x9'
+  pptx.title = title
+
+  // 各スライドを追加
+  for (const slideData of slides) {
+    const { analysis, graphics } = slideData
+    const slide = pptx.addSlide()
+
+    // 背景色を設定
+    slide.background = { color: analysis.backgroundColor }
+
+    // 1. グラフィック要素を追加（最背面に配置）
+    for (const graphic of graphics) {
+      const { region, imageBlob } = graphic
+      const dataUrl = await blobToDataUrl(imageBlob)
+      const base64Data = extractBase64FromDataUrl(dataUrl)
+
+      if (base64Data) {
+        slide.addImage({
+          data: `image/png;base64,${base64Data}`,
+          x: pctToInches(region.x, 'width'),
+          y: pctToInches(region.y, 'height'),
+          w: pctToInches(region.width, 'width'),
+          h: pctToInches(region.height, 'height'),
+        })
+      }
+    }
+
+    // 2. シェイプ要素を追加
+    addShapeElements(pptx, slide, analysis.shapeElements)
+
+    // 3. テキスト要素を追加
+    for (const textEl of analysis.textElements) {
+      const fontSize = fontSizePctToPt(textEl.fontSize)
+      const { fontFace, bold } = selectFontFace(
+        textEl.fontStyle,
+        textEl.fontWeight,
+        textEl.role,
+      )
+
+      const indentOffset = (textEl.indentLevel ?? 0) * INDENT_OFFSET_PCT
+      const minWidthPct = 1
+      const finalWidthPct = Math.max(textEl.width - indentOffset, minWidthPct)
+      const xPct = Math.min(textEl.x + indentOffset, 100 - finalWidthPct)
+
+      const textOptions: PptxGenJS.TextPropsOptions = {
+        x: pctToInches(xPct, 'width'),
+        y: pctToInches(textEl.y, 'height'),
+        w: pctToInches(finalWidthPct, 'width'),
+        h: pctToInches(textEl.height, 'height'),
+        fontSize,
+        fontFace,
+        bold,
+        color: textEl.color,
+        align: textEl.align,
+        valign: 'top',
+      }
+
+      if (textEl.backgroundColor) {
+        textOptions.fill = { color: textEl.backgroundColor }
+      }
+
+      slide.addText(textEl.content, textOptions)
+    }
+
+    // 4. テーブル要素を追加
+    addTableElements(slide, analysis.tableElements)
+  }
+
+  // Blobとして出力
+  const result = await pptx.write({ outputType: 'blob' })
+  if (!(result instanceof Blob)) {
+    throw new Error('PPTX生成に失敗しました: 出力がBlobではありません')
+  }
+
+  return {
+    blob: result,
+    fileName,
+  }
 }

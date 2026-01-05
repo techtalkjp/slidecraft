@@ -1,9 +1,12 @@
+import { DurablyProvider } from '@coji/durably-react'
+import { Loader2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Outlet, useLocation } from 'react-router'
 import { AppSidebar } from '~/components/layout/app-sidebar'
 import { Main } from '~/components/layout/main'
 import { SidebarProvider, SidebarTrigger } from '~/components/ui/sidebar'
 import { useBreadcrumbs } from '~/hooks/use-breadcrumbs'
+import { durablyPromise } from '~/jobs'
 import { auth } from '~/lib/auth/auth'
 import { sessionContext } from '~/lib/auth/session.context'
 import { cn } from '~/lib/utils'
@@ -31,6 +34,14 @@ export const middleware: Route.MiddlewareFunction[] = [
     return response
   },
 ]
+
+function DurablyFallback() {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80">
+      <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+    </div>
+  )
+}
 
 function AppLayoutContent({ isEditorPage }: { isEditorPage: boolean }) {
   const { Breadcrumbs } = useBreadcrumbs()
@@ -90,8 +101,10 @@ export default function AppLayout() {
   }, [isEditorPage])
 
   return (
-    <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
-      <AppLayoutContent isEditorPage={isEditorPage} />
-    </SidebarProvider>
+    <DurablyProvider durably={durablyPromise} fallback={<DurablyFallback />}>
+      <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
+        <AppLayoutContent isEditorPage={isEditorPage} />
+      </SidebarProvider>
+    </DurablyProvider>
   )
 }

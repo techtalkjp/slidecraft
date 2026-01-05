@@ -100,7 +100,6 @@ export default function Editor({ loaderData }: Route.ComponentProps) {
             projectId={projectId}
             projectName={loaderData.project.name}
             slide={slides[selectedIndex]}
-            slideNumber={selectedIndex + 1}
             allSlides={slides}
             onSlideUpdate={handleSlideUpdate}
           />
