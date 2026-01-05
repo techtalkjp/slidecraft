@@ -45,6 +45,11 @@ const BatchPptxExportOutputSchema = z.object({
   fileName: z.string(),
   totalSlides: z.number(),
   completedAt: z.string(),
+  // 実績コスト（API使用量から算出）
+  actualCostUsd: z.number().optional(),
+  actualCostJpy: z.number().optional(),
+  totalInputTokens: z.number().optional(),
+  totalOutputTokens: z.number().optional(),
 })
 
 export const batchPptxExportJob = defineJob({
@@ -54,7 +59,7 @@ export const batchPptxExportJob = defineJob({
   run: async (step, payload) => {
     const { projectId, projectName, slides, apiKey } = payload
 
-    step.progress(0, 2, 'スライドを解析中...')
+    step.progress(1, 2, 'スライドを解析中...')
 
     // 全スライドを並列で解析（1つのステップで実行）
     const processedSlides = await step.run('analyze-all-slides', async () => {
@@ -97,6 +102,8 @@ export const batchPptxExportJob = defineJob({
             slideNumber,
             analysisJson: JSON.stringify(analysisResult.analysis),
             graphicsBase64,
+            // API使用量を記録
+            usage: analysisResult.usage,
           }
         }),
       )
@@ -147,11 +154,33 @@ export const batchPptxExportJob = defineJob({
 
     step.progress(2, 2, '完了')
 
+    // 全スライドの使用量を集計
+    const totalInputTokens = processedSlides.reduce(
+      (sum, s) => sum + (s.usage?.inputTokens ?? 0),
+      0,
+    )
+    const totalOutputTokens = processedSlides.reduce(
+      (sum, s) => sum + (s.usage?.outputTokens ?? 0),
+      0,
+    )
+    const actualCostUsd = processedSlides.reduce(
+      (sum, s) => sum + (s.usage?.cost ?? 0),
+      0,
+    )
+    const actualCostJpy = processedSlides.reduce(
+      (sum, s) => sum + (s.usage?.costJpy ?? 0),
+      0,
+    )
+
     return {
       opfsPath: pptxResult.opfsPath,
       fileName: pptxResult.fileName,
       totalSlides: slides.length,
       completedAt: new Date().toISOString(),
+      actualCostUsd,
+      actualCostJpy,
+      totalInputTokens,
+      totalOutputTokens,
     }
   },
 })

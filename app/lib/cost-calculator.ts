@@ -226,23 +226,34 @@ export function getCostMessageJPY(
 /**
  * PPTX一括エクスポートのコストを計算
  *
- * 1スライドあたりのコスト:
- * - 画像入力: $0.0011 (IMAGE_PRICING.imageInputPerImage)
- * - AI解析出力: 約$0.002（テキスト解析の出力トークン推定）
+ * gemini-3-pro-preview を使用したスライド解析のコスト:
+ * - 入力: 画像(約1000トークン) + プロンプト(約1000トークン) = 約2000トークン
+ * - 出力: 構造化JSON(約500-2000トークン) = 約1000トークン（平均）
+ *
+ * 料金（gemini-3-pro-preview）:
+ * - 入力: $2.00/1M tokens → 2000 tokens = $0.004
+ * - 出力: $12.00/1M tokens → 1000 tokens = $0.012
+ * - 合計: 約$0.016/スライド（約¥2.4 @ 150円/ドル）
  *
  * @param slideCount スライド枚数
  * @returns コスト見積もり
  */
 export function calculateBatchPptxCost(slideCount: number): CostEstimate {
-  // 1スライドあたり: 画像入力 + AI解析出力トークン推定
-  const inputPerSlide = IMAGE_PRICING.imageInputPerImage
-  const outputPerSlide = 0.002 // AI解析の出力トークン推定（約$0.002/スライド）
+  const pricing = MODEL_PRICING['gemini-3-pro-preview']
+
+  // 1スライドあたりの推定トークン数
+  const inputTokensPerSlide = 2000 // 画像 + プロンプト
+  const outputTokensPerSlide = 1000 // 構造化JSON出力
+
+  // コスト計算
+  const inputCostPerSlide = (inputTokensPerSlide / 1_000_000) * pricing.input
+  const outputCostPerSlide = (outputTokensPerSlide / 1_000_000) * pricing.output
 
   return {
-    inputCost: slideCount * inputPerSlide,
-    outputCost: slideCount * outputPerSlide,
-    totalCost: slideCount * (inputPerSlide + outputPerSlide),
-    inputTokens: 0, // 画像入力はトークンではなく画像単位
-    outputTokens: 0,
+    inputCost: slideCount * inputCostPerSlide,
+    outputCost: slideCount * outputCostPerSlide,
+    totalCost: slideCount * (inputCostPerSlide + outputCostPerSlide),
+    inputTokens: slideCount * inputTokensPerSlide,
+    outputTokens: slideCount * outputTokensPerSlide,
   }
 }

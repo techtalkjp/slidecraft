@@ -6,13 +6,19 @@ import { Button } from '~/components/ui/button'
 import { trackPdfExported } from '~/lib/analytics'
 import { downloadPdf, generatePdfFromSlides } from '~/lib/pdf-generator.client'
 import type { Slide } from '~/lib/types'
+import { PptxExportButton } from './components/pptx-export-button'
 
 interface EditorActionsProps {
   projectId: string
+  projectName: string
   slides: Slide[]
 }
 
-export function EditorActions({ projectId, slides }: EditorActionsProps) {
+export function EditorActions({
+  projectId,
+  projectName,
+  slides,
+}: EditorActionsProps) {
   const [isExporting, setIsExporting] = useState(false)
   const [exportProgress, setExportProgress] = useState<{
     current: number
@@ -94,6 +100,13 @@ export function EditorActions({ projectId, slides }: EditorActionsProps) {
           </>
         )}
       </Button>
+
+      {/* PPTX書き出しボタン */}
+      <PptxExportButton
+        projectId={projectId}
+        projectName={projectName}
+        slides={slides}
+      />
     </>
   )
 

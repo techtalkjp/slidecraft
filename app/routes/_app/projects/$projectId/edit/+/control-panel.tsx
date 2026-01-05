@@ -3,14 +3,12 @@ import { ApiKeyDialog } from '~/components/api-key-dialog'
 import type { Slide } from '~/lib/types'
 import { CandidateImagesGrid } from './components/candidate-images-grid'
 import { GenerationControlForm } from './components/generation-control-form'
-import { PptxBatchExportPanel } from './components/pptx-batch-export-panel'
 import { useCostEstimate } from './hooks/use-cost-estimate'
 import { useSlideGeneration } from './hooks/use-slide-generation'
 import { useSlideImages } from './hooks/use-slide-images'
 
 interface ControlPanelProps {
   projectId: string
-  projectName: string
   slide: Slide
   allSlides: Slide[]
   onSlideUpdate: () => void
@@ -18,7 +16,6 @@ interface ControlPanelProps {
 
 export function ControlPanel({
   projectId,
-  projectName,
   slide,
   allSlides,
   onSlideUpdate,
@@ -124,15 +121,6 @@ export function ControlPanel({
               loadCandidateImage={loadCandidateImage}
             />
           </div>
-        </div>
-
-        {/* PPTX一括エクスポート（下部固定） */}
-        <div className="shrink-0 border-t border-slate-200">
-          <PptxBatchExportPanel
-            projectId={projectId}
-            projectName={projectName}
-            slides={allSlides}
-          />
         </div>
       </div>
     </>
