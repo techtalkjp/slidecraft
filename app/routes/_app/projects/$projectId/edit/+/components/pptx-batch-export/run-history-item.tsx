@@ -3,7 +3,7 @@
  *
  * 単一責務: 1つのジョブ履歴を表示し、ステータスに応じたアクションを提供
  */
-import { Download, FileDown, RefreshCw, Trash2 } from 'lucide-react'
+import { AlertTriangle, Download, FileDown, RefreshCw, Trash2 } from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import type { BatchPptxExportInput, BatchPptxExportOutput } from '~/jobs'
 import { formatCostJPY } from '~/lib/cost-calculator'
@@ -77,22 +77,50 @@ function RunActions({
 }: Pick<RunHistoryItemProps, 'run' | 'onDownload' | 'onRetry' | 'onDelete'>) {
   const output = run.output
   if (run.status === 'completed' && output) {
+    const failedSlides = output.failedSlides ?? []
+    const hasFailedSlides = failedSlides.length > 0
     return (
-      <div className="mt-1 flex items-center gap-1 pl-6">
-        <FileDown className="h-3 w-3 text-slate-400" />
-        <span className="flex-1 truncate text-[10px] text-slate-500">
-          {output.fileName}
-        </span>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="h-6 px-2 text-[10px] text-emerald-600 hover:text-emerald-700"
-          onClick={() => onDownload(output)}
-        >
-          <Download className="mr-1 h-3 w-3" />
-          DL
-        </Button>
-        <DeleteButton onClick={() => onDelete(run.id)} />
+      <div className="mt-1 space-y-1 pl-6">
+        {/* 部分的成功の警告 */}
+        {hasFailedSlides && (
+          <div className="flex items-start gap-1 rounded bg-amber-50 px-2 py-1">
+            <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-amber-500" />
+            <div className="text-[10px] text-amber-700">
+              <span className="font-medium">
+                {failedSlides.length}枚のスライドが失敗
+              </span>
+              <ul className="mt-0.5 list-inside list-disc">
+                {failedSlides.map((f) => (
+                  <li key={f.slideId} className="truncate">
+                    スライド{f.slideNumber}: {f.error}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+        {/* ファイル情報とアクション */}
+        <div className="flex items-center gap-1">
+          <FileDown className="h-3 w-3 text-slate-400" />
+          <span className="flex-1 truncate text-[10px] text-slate-500">
+            {output.fileName}
+            {hasFailedSlides && (
+              <span className="ml-1 text-amber-600">
+                ({output.successfulSlides}/{output.totalSlides}枚)
+              </span>
+            )}
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 px-2 text-[10px] text-emerald-600 hover:text-emerald-700"
+            onClick={() => onDownload(output)}
+          >
+            <Download className="mr-1 h-3 w-3" />
+            DL
+          </Button>
+          <DeleteButton onClick={() => onDelete(run.id)} />
+        </div>
       </div>
     )
   }

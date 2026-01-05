@@ -40,13 +40,25 @@ const BatchPptxExportInputSchema = z.object({
 })
 
 /**
+ * 失敗したスライドの情報
+ */
+const FailedSlideSchema = z.object({
+  slideNumber: z.number(),
+  slideId: z.string(),
+  error: z.string(),
+})
+
+/**
  * ジョブ出力スキーマ
  */
 const BatchPptxExportOutputSchema = z.object({
   opfsPath: z.string(), // OPFS 内のファイルパス
   fileName: z.string(),
   totalSlides: z.number(),
+  successfulSlides: z.number(),
   completedAt: z.string(),
+  // 失敗したスライドの情報（部分的成功の場合）
+  failedSlides: z.array(FailedSlideSchema).optional(),
   // 実績コスト（API使用量から算出）
   actualCostUsd: z.number().optional(),
   actualCostJpy: z.number().optional(),
@@ -64,7 +76,8 @@ export const batchPptxExportJob = defineJob({
     step.progress(1, 2, 'スライドを解析中...')
 
     // 全スライドを並列で解析（1つのステップで実行）
-    const processedSlides = await step.run('analyze-all-slides', async () => {
+    // Promise.allSettled で部分的成功を許容
+    const analyzeResult = await step.run('analyze-all-slides', async () => {
       // セキュリティ: APIキーはジョブ入力に含めず、実行時にlocalStorageから取得
       const { getApiKey } = await import('~/lib/api-settings.client')
       const apiKey = getApiKey()
@@ -77,8 +90,8 @@ export const batchPptxExportJob = defineJob({
       const { extractAllGraphicRegions } =
         await import('~/lib/graphic-extractor.client')
 
-      // 全スライドを並列処理
-      const results = await Promise.all(
+      // 全スライドを並列処理（Promise.allSettled で部分的失敗を許容）
+      const settledResults = await Promise.allSettled(
         slides.map(async (slide, i) => {
           const slideNumber = i + 1
 
@@ -116,9 +129,56 @@ export const batchPptxExportJob = defineJob({
         }),
       )
 
-      // スライド番号順にソート（並列実行で順番が保証されないため）
-      return results.sort((a, b) => a.slideNumber - b.slideNumber)
+      // 成功・失敗を分離
+      const successful: Array<{
+        slideId: string
+        slideNumber: number
+        analysisJson: string
+        graphicsBase64: Array<{ regionJson: string; imageBase64: string }>
+        usage?: {
+          inputTokens?: number
+          outputTokens?: number
+          cost?: number
+          costJpy?: number
+        }
+      }> = []
+      const failed: Array<{
+        slideNumber: number
+        slideId: string
+        error: string
+      }> = []
+
+      settledResults.forEach((result, i) => {
+        const slide = slides[i]
+        if (!slide) return
+        if (result.status === 'fulfilled') {
+          successful.push(result.value)
+        } else {
+          failed.push({
+            slideNumber: i + 1,
+            slideId: slide.id,
+            error:
+              result.reason instanceof Error
+                ? result.reason.message
+                : String(result.reason),
+          })
+        }
+      })
+
+      // 全スライド失敗の場合はエラー
+      if (successful.length === 0) {
+        throw new Error(
+          `全スライドの解析に失敗しました: ${failed.map((f) => `スライド${f.slideNumber}: ${f.error}`).join(', ')}`,
+        )
+      }
+
+      // スライド番号順にソート
+      successful.sort((a, b) => a.slideNumber - b.slideNumber)
+
+      return { successful, failed }
     })
+
+    const { successful: processedSlides, failed: failedSlides } = analyzeResult
 
     step.progress(1, 2, 'PPTX を生成中...')
 
@@ -130,16 +190,23 @@ export const batchPptxExportJob = defineJob({
       const { writeFile } = await import('~/lib/storage.client')
 
       // シリアライズされたデータを復元
-      const slideDataList = processedSlides.map((processed) => {
-        const analysis = SlideAnalysisSchema.parse(
-          JSON.parse(processed.analysisJson),
-        )
-        const graphics = processed.graphicsBase64.map((g) => ({
-          region: JSON.parse(g.regionJson),
-          imageBlob: base64ToBlob(g.imageBase64, 'image/png'),
-        }))
-        return { analysis, graphics }
-      })
+      const slideDataList = processedSlides.map(
+        (processed: {
+          analysisJson: string
+          graphicsBase64: Array<{ regionJson: string; imageBase64: string }>
+        }) => {
+          const analysis = SlideAnalysisSchema.parse(
+            JSON.parse(processed.analysisJson),
+          )
+          const graphics = processed.graphicsBase64.map(
+            (g: { regionJson: string; imageBase64: string }) => ({
+              region: JSON.parse(g.regionJson),
+              imageBlob: base64ToBlob(g.imageBase64, 'image/png'),
+            }),
+          )
+          return { analysis, graphics }
+        },
+      )
 
       const timestamp = new Date().toISOString().split('T')[0]
       const fileName = `${projectName}-${timestamp}.pptx`
@@ -162,21 +229,25 @@ export const batchPptxExportJob = defineJob({
 
     step.progress(2, 2, '完了')
 
-    // 全スライドの使用量を集計
+    // 成功スライドの使用量を集計
     const totalInputTokens = processedSlides.reduce(
-      (sum, s) => sum + (s.usage?.inputTokens ?? 0),
+      (sum: number, s: { usage?: { inputTokens?: number } }) =>
+        sum + (s.usage?.inputTokens ?? 0),
       0,
     )
     const totalOutputTokens = processedSlides.reduce(
-      (sum, s) => sum + (s.usage?.outputTokens ?? 0),
+      (sum: number, s: { usage?: { outputTokens?: number } }) =>
+        sum + (s.usage?.outputTokens ?? 0),
       0,
     )
     const actualCostUsd = processedSlides.reduce(
-      (sum, s) => sum + (s.usage?.cost ?? 0),
+      (sum: number, s: { usage?: { cost?: number } }) =>
+        sum + (s.usage?.cost ?? 0),
       0,
     )
     const actualCostJpy = processedSlides.reduce(
-      (sum, s) => sum + (s.usage?.costJpy ?? 0),
+      (sum: number, s: { usage?: { costJpy?: number } }) =>
+        sum + (s.usage?.costJpy ?? 0),
       0,
     )
 
@@ -184,7 +255,9 @@ export const batchPptxExportJob = defineJob({
       opfsPath: pptxResult.opfsPath,
       fileName: pptxResult.fileName,
       totalSlides: slides.length,
+      successfulSlides: processedSlides.length,
       completedAt: new Date().toISOString(),
+      failedSlides: failedSlides.length > 0 ? failedSlides : undefined,
       actualCostUsd,
       actualCostJpy,
       totalInputTokens,
