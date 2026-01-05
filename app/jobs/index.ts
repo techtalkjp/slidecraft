@@ -13,4 +13,3 @@ export type {
   BatchPptxExportInput,
   BatchPptxExportOutput,
 } from './batch-pptx-export'
-export { testMultiStepJob } from './test-multi-step'

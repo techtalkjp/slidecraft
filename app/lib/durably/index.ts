@@ -7,7 +7,6 @@
 import { createDurably } from '@coji/durably'
 import { SQLocalKysely } from 'sqlocal/kysely'
 import { batchPptxExportJob } from '~/jobs/batch-pptx-export'
-import { testMultiStepJob } from '~/jobs/test-multi-step'
 
 const sqlocal = new SQLocalKysely('durably.sqlite3')
 export const { dialect } = sqlocal
@@ -21,7 +20,6 @@ const baseDurably = createDurably({
 
 // 全ジョブを登録
 const jobs = {
-  testMultiStep: testMultiStepJob,
   batchPptxExport: batchPptxExportJob,
 }
 

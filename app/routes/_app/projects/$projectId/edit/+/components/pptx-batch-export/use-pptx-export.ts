@@ -75,7 +75,9 @@ export function usePptxExport({
         await downloadPptxFromOpfs(output)
       } catch (err) {
         console.error('PPTXダウンロードエラー:', err)
-        setLocalError('PPTXのダウンロードに失敗しました')
+        const message =
+          err instanceof Error ? err.message : 'PPTXのダウンロードに失敗しました'
+        setLocalError(message)
       }
     },
     [],
@@ -88,7 +90,9 @@ export function usePptxExport({
         await durably.retry(runId)
       } catch (err) {
         console.error('再試行エラー:', err)
-        setLocalError('再試行に失敗しました')
+        const message =
+          err instanceof Error ? err.message : '再試行に失敗しました'
+        setLocalError(message)
       }
     },
     [durably],
@@ -101,7 +105,9 @@ export function usePptxExport({
         await durably.deleteRun(runId)
       } catch (err) {
         console.error('削除エラー:', err)
-        setLocalError('削除に失敗しました')
+        const message =
+          err instanceof Error ? err.message : '削除に失敗しました'
+        setLocalError(message)
       }
     },
     [durably],
