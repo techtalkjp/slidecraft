@@ -75,18 +75,19 @@ function RunActions({
   onRetry,
   onDelete,
 }: Pick<RunHistoryItemProps, 'run' | 'onDownload' | 'onRetry' | 'onDelete'>) {
-  if (run.status === 'completed' && run.output) {
+  const output = run.output
+  if (run.status === 'completed' && output) {
     return (
       <div className="mt-1 flex items-center gap-1 pl-6">
         <FileDown className="h-3 w-3 text-slate-400" />
         <span className="flex-1 truncate text-[10px] text-slate-500">
-          {run.output.fileName}
+          {output.fileName}
         </span>
         <Button
           size="sm"
           variant="ghost"
           className="h-6 px-2 text-[10px] text-emerald-600 hover:text-emerald-700"
-          onClick={() => onDownload(run.output!)}
+          onClick={() => onDownload(output)}
         >
           <Download className="mr-1 h-3 w-3" />
           DL
