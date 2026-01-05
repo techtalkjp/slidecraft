@@ -7,7 +7,7 @@
   ],
   "headers": [
     {
-      "source": "/projects/:projectId/edit",
+      "source": "/projects/*/edit",
       "headers": [
         {
           "key": "Cross-Origin-Opener-Policy",
