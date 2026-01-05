@@ -32,11 +32,8 @@ export async function getOrCreateSession(
 
   try {
     // 既存セッションを確認
-    const headersToUse = requestHeaders
-
     session = await authApi.getSession({
-      headers: headersToUse,
-      query: { disableCookieCache: true },
+      headers: requestHeaders,
     })
 
     // セッションがなければ匿名サインイン
@@ -56,7 +53,6 @@ export async function getOrCreateSession(
         }
         session = await authApi.getSession({
           headers: newHeaders,
-          query: { disableCookieCache: true },
         })
       }
     }

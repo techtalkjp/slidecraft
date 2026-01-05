@@ -41,9 +41,9 @@ export async function clientLoader({
   params,
 }: Route.ClientLoaderArgs) {
   const { projectId } = params
-  if (!projectId) throw redirect('/projects')
+  if (!projectId) throw redirect('/projects', { status: 400 })
   const data = await getEditorData(projectId, request.url)
-  if (!data) throw redirect('/projects')
+  if (!data) throw redirect('/projects', { status: 404 })
   return data
 }
 
@@ -52,7 +52,7 @@ export async function clientAction({
   params,
 }: Route.ClientActionArgs) {
   const { projectId } = params
-  if (!projectId) throw new Response('Project ID required', { status: 400 })
+  if (!projectId) throw redirect('/projects', { status: 400 })
 
   const formData = await request.formData()
   const action = formData.get('_action') as string
@@ -62,7 +62,7 @@ export async function clientAction({
     .with('resetToOriginal', () => resetToOriginal(formData, projectId))
     .with('deleteCandidate', () => deleteCandidate(formData, projectId))
     .otherwise(() => {
-      throw new Response('Invalid action', { status: 400 })
+      throw redirect('/projects', { status: 400 })
     })
 }
 
