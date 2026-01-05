@@ -32,11 +32,7 @@ export async function getOrCreateSession(
 
   try {
     // 既存セッションを確認
-    const cookieHeader = requestHeaders.get('cookie')
-    let headersToUse = requestHeaders
-    if (cookieHeader) {
-      headersToUse = requestHeaders
-    }
+    const headersToUse = requestHeaders
 
     session = await authApi.getSession({
       headers: headersToUse,
