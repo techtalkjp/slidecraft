@@ -40,8 +40,10 @@ export async function clientLoader({
   request,
   params,
 }: Route.ClientLoaderArgs) {
-  const data = await getEditorData(params.projectId, request.url)
-  if (!data) throw redirect('/projects')
+  const { projectId } = params
+  if (!projectId) throw redirect('/projects', { status: 400 })
+  const data = await getEditorData(projectId, request.url)
+  if (!data) throw redirect('/projects', { status: 404 })
   return data
 }
 
@@ -49,15 +51,18 @@ export async function clientAction({
   request,
   params,
 }: Route.ClientActionArgs) {
+  const { projectId } = params
+  if (!projectId) throw redirect('/projects', { status: 400 })
+
   const formData = await request.formData()
   const action = formData.get('_action') as string
 
   return match(action)
-    .with('selectCandidate', () => selectCandidate(formData, params.projectId))
-    .with('resetToOriginal', () => resetToOriginal(formData, params.projectId))
-    .with('deleteCandidate', () => deleteCandidate(formData, params.projectId))
+    .with('selectCandidate', () => selectCandidate(formData, projectId))
+    .with('resetToOriginal', () => resetToOriginal(formData, projectId))
+    .with('deleteCandidate', () => deleteCandidate(formData, projectId))
     .otherwise(() => {
-      throw new Response('Invalid action', { status: 400 })
+      throw redirect('/projects', { status: 400 })
     })
 }
 
@@ -80,7 +85,7 @@ export default function Editor({ loaderData }: Route.ComponentProps) {
         direction="horizontal"
         className="flex-1 overflow-hidden"
       >
-        <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
+        <ResizablePanel defaultSize="20%" minSize="15%" maxSize="30%">
           <Sidebar
             projectId={projectId}
             slides={slides}
@@ -88,7 +93,7 @@ export default function Editor({ loaderData }: Route.ComponentProps) {
           />
         </ResizablePanel>
         <ResizableHandle withHandle />
-        <ResizablePanel defaultSize={55} minSize={40}>
+        <ResizablePanel defaultSize="55%" minSize="40%">
           <MainPreview
             projectId={projectId}
             slide={slides[selectedIndex]}
@@ -99,7 +104,7 @@ export default function Editor({ loaderData }: Route.ComponentProps) {
           />
         </ResizablePanel>
         <ResizableHandle withHandle />
-        <ResizablePanel defaultSize={25} minSize={20} maxSize={35}>
+        <ResizablePanel defaultSize="25%" minSize="20%" maxSize="35%">
           <ControlPanel
             projectId={projectId}
             slide={slides[selectedIndex]}
