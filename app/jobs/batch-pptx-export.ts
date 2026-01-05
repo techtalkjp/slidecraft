@@ -29,12 +29,14 @@ const SlideInputSchema = z.object({
 
 /**
  * ジョブ入力スキーマ
+ *
+ * 注意: APIキーはセキュリティ上の理由からジョブ入力に含めない
+ * ジョブ実行時にlocalStorageから取得する
  */
 const BatchPptxExportInputSchema = z.object({
   projectId: z.string(),
   projectName: z.string(),
   slides: z.array(SlideInputSchema),
-  apiKey: z.string(),
 })
 
 /**
@@ -57,12 +59,18 @@ export const batchPptxExportJob = defineJob({
   input: BatchPptxExportInputSchema,
   output: BatchPptxExportOutputSchema,
   run: async (step, payload) => {
-    const { projectId, projectName, slides, apiKey } = payload
+    const { projectId, projectName, slides } = payload
 
     step.progress(1, 2, 'スライドを解析中...')
 
     // 全スライドを並列で解析（1つのステップで実行）
     const processedSlides = await step.run('analyze-all-slides', async () => {
+      // セキュリティ: APIキーはジョブ入力に含めず、実行時にlocalStorageから取得
+      const { getApiKey } = await import('~/lib/api-settings.client')
+      const apiKey = getApiKey()
+      if (!apiKey) {
+        throw new Error('APIキーが設定されていません')
+      }
       const { loadCurrentSlideImage } =
         await import('~/lib/slides-repository.client')
       const { analyzeSlide } = await import('~/lib/slide-analyzer.client')

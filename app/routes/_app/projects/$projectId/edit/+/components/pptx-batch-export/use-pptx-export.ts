@@ -59,13 +59,15 @@ export function usePptxExport({
     : `$${costEstimate.totalCost.toFixed(3)}`
 
   // エクスポート開始
+  // 注意: APIキーはセキュリティ上の理由からジョブ入力に含めない
+  // ジョブ実行時にlocalStorageから取得する
   const handleExport = useCallback(async () => {
     if (!apiKey) {
       setLocalError('PPTX エクスポートには API キーが必要です')
       return
     }
     setLocalError(null)
-    await pptxJob.trigger({ projectId, projectName, slides, apiKey })
+    await pptxJob.trigger({ projectId, projectName, slides })
   }, [apiKey, projectId, projectName, slides, pptxJob])
 
   // ダウンロード

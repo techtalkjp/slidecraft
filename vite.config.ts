@@ -4,19 +4,29 @@ import { defineConfig, type Plugin } from 'vite'
 import devtoolsJson from 'vite-plugin-devtools-json'
 import tsconfigPaths from 'vite-tsconfig-paths'
 
-// COOP/COEP ヘッダーを追加するプラグイン（SQLocal 用）
-// Durably を使用するルートと関連 worker に適用して、OPFS 永続化を有効化
-// 注意: COOP/COEP は OAuth ポップアップなどに影響するため、必要なルートのみに適用
+/**
+ * COOP/COEP ヘッダーを追加するプラグイン（開発サーバー用）
+ *
+ * SQLocal (OPFS SQLite) と SharedArrayBuffer を使用するために必要。
+ * Durably ワークフローエンジンがエディタページで OPFS を使用する。
+ *
+ * 対象:
+ * - /edit を含むルート: プロジェクト編集ページ（Durably 使用）
+ * - sqlocal, sqlite を含むパス: Worker ファイル
+ *
+ * 注意: COOP/COEP は OAuth ポップアップなどに影響するため、
+ * 全ページではなく必要なルートのみに適用すること。
+ *
+ * 本番環境では vercel.json でヘッダーを設定する。
+ */
 function coopCoepPlugin(): Plugin {
   return {
     name: 'coop-coep',
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
         const url = req.url ?? ''
-        // Durably を使用するルートと SQLocal/sqlite-wasm の worker ファイルにヘッダーを適用
         const needsCoopCoep =
-          url.startsWith('/test/durably') ||
-          url.includes('/edit') || // エディタページ
+          url.includes('/edit') ||
           url.includes('sqlocal') ||
           url.includes('sqlite')
         if (needsCoopCoep) {

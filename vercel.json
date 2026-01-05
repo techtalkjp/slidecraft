@@ -7,7 +7,7 @@
   ],
   "headers": [
     {
-      "source": "/test/durably",
+      "source": "/projects/:projectId/edit",
       "headers": [
         {
           "key": "Cross-Origin-Opener-Policy",
