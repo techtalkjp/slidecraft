@@ -1,6 +1,6 @@
 import { betterAuth } from 'better-auth'
 import { anonymous } from 'better-auth/plugins'
-import { db } from '~/lib/db/kysely'
+import { authDb } from '~/lib/db/kysely'
 
 // BETTER_AUTH_SECRET を取得
 // 本番環境・Preview環境では env.server.ts で必須チェック済み
@@ -39,7 +39,7 @@ export const auth = betterAuth({
   baseURL,
   trustedOrigins,
   database: {
-    db,
+    db: authDb,
     type: 'sqlite',
   },
   user: {
