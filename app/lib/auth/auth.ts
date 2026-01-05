@@ -48,6 +48,7 @@ export const auth = betterAuth({
       emailVerified: 'email_verified',
       createdAt: 'created_at',
       updatedAt: 'updated_at',
+      isAnonymous: 'is_anonymous',
     },
   },
   session: {
