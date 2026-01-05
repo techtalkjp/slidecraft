@@ -3,14 +3,14 @@
  *
  * 単一責務: ステータスに応じたアイコンを表示
  */
-import {
-  CheckCircle2,
-  Clock,
-  Loader2,
-  XCircle,
-} from 'lucide-react'
+import { CheckCircle2, Clock, Loader2, XCircle } from 'lucide-react'
 
-export type RunStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
+export type RunStatus =
+  | 'pending'
+  | 'running'
+  | 'completed'
+  | 'failed'
+  | 'cancelled'
 
 interface RunStatusIconProps {
   status: RunStatus

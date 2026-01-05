@@ -71,19 +71,16 @@ export function usePptxExport({
   }, [apiKey, projectId, projectName, slides, pptxJob])
 
   // ダウンロード
-  const handleDownload = useCallback(
-    async (output: BatchPptxExportOutput) => {
-      try {
-        await downloadPptxFromOpfs(output)
-      } catch (err) {
-        console.error('PPTXダウンロードエラー:', err)
-        const message =
-          err instanceof Error ? err.message : 'PPTXのダウンロードに失敗しました'
-        setLocalError(message)
-      }
-    },
-    [],
-  )
+  const handleDownload = useCallback(async (output: BatchPptxExportOutput) => {
+    try {
+      await downloadPptxFromOpfs(output)
+    } catch (err) {
+      console.error('PPTXダウンロードエラー:', err)
+      const message =
+        err instanceof Error ? err.message : 'PPTXのダウンロードに失敗しました'
+      setLocalError(message)
+    }
+  }, [])
 
   // 再試行
   const handleRetry = useCallback(

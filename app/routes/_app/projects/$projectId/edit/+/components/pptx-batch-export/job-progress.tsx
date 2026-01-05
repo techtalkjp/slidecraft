@@ -35,7 +35,11 @@ interface JobCompletedProps {
   onClose: () => void
 }
 
-export function JobCompleted({ output, onDownload, onClose }: JobCompletedProps) {
+export function JobCompleted({
+  output,
+  onDownload,
+  onClose,
+}: JobCompletedProps) {
   return (
     <div className="border-b border-slate-100 bg-emerald-50 px-3 py-3">
       <div className="flex items-center gap-2">
