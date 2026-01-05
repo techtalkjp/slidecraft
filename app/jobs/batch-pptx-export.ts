@@ -218,7 +218,14 @@ function blobToBase64(blob: Blob): Promise<string> {
  * Base64 文字列を Blob に変換
  */
 function base64ToBlob(base64: string, mimeType: string): Blob {
-  const byteCharacters = atob(base64)
+  let byteCharacters: string
+  try {
+    byteCharacters = atob(base64)
+  } catch (error) {
+    throw new Error(
+      `Invalid base64 data: ${error instanceof Error ? error.message : 'decode failed'}`,
+    )
+  }
   const byteNumbers = new Array(byteCharacters.length)
   for (let i = 0; i < byteCharacters.length; i++) {
     byteNumbers[i] = byteCharacters.charCodeAt(i)
