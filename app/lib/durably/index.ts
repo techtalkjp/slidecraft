@@ -29,4 +29,13 @@ export const durably = baseDurably.register(jobs)
  * 初期化済みの Durably インスタンスを返す Promise
  * ジョブ登録後に init() を呼び出す
  */
-export const durablyPromise = durably.init().then(() => durably)
+export const durablyPromise = durably
+  .init()
+  .then(() => durably)
+  .catch((error) => {
+    console.error('Failed to initialize Durably:', error)
+    // Re-throw to propagate to DurablyProvider error boundary
+    throw new Error(
+      `Durably initialization failed: ${error instanceof Error ? error.message : String(error)}`,
+    )
+  })

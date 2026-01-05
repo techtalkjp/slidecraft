@@ -202,8 +202,12 @@ function blobToBase64(blob: Blob): Promise<string> {
     reader.onloadend = () => {
       const result = reader.result as string
       // data:image/png;base64, の部分を除去
-      const base64 = result.split(',')[1] || ''
-      resolve(base64)
+      const parts = result.split(',')
+      if (parts.length !== 2 || !parts[1]) {
+        reject(new Error('Invalid data URL format'))
+        return
+      }
+      resolve(parts[1])
     }
     reader.onerror = reject
     reader.readAsDataURL(blob)
