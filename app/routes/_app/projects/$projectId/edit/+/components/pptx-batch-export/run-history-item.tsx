@@ -3,7 +3,13 @@
  *
  * 単一責務: 1つのジョブ履歴を表示し、ステータスに応じたアクションを提供
  */
-import { AlertTriangle, Download, FileDown, RefreshCw, Trash2 } from 'lucide-react'
+import {
+  AlertTriangle,
+  Download,
+  FileDown,
+  RefreshCw,
+  Trash2,
+} from 'lucide-react'
 import { Button } from '~/components/ui/button'
 import type { BatchPptxExportInput, BatchPptxExportOutput } from '~/jobs'
 import { formatCostJPY } from '~/lib/cost-calculator'
