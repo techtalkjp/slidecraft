@@ -1,13 +1,7 @@
 import type { Session } from '~/lib/auth/auth'
 
 export type AuthApi = {
-  getSession: (opts: {
-    headers: Headers
-    query?: {
-      disableCookieCache?: boolean
-      disableRefresh?: boolean
-    }
-  }) => Promise<Session | null>
+  getSession: (opts: { headers: Headers }) => Promise<Session | null>
   signInAnonymous: (opts: {
     headers: Headers
     asResponse: true
@@ -32,9 +26,7 @@ export async function getOrCreateSession(
 
   try {
     // 既存セッションを確認
-    session = await authApi.getSession({
-      headers: requestHeaders,
-    })
+    session = await authApi.getSession({ headers: requestHeaders })
 
     // セッションがなければ匿名サインイン
     if (!session) {
@@ -51,9 +43,7 @@ export async function getOrCreateSession(
           const cookieValue = setCookieHeader.split(';')[0]
           newHeaders.set('cookie', cookieValue)
         }
-        session = await authApi.getSession({
-          headers: newHeaders,
-        })
+        session = await authApi.getSession({ headers: newHeaders })
       }
     }
   } catch (error) {
