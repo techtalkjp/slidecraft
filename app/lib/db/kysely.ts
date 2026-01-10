@@ -1,4 +1,4 @@
-import { CamelCasePlugin, Kysely } from 'kysely'
+import { Kysely } from 'kysely'
 import { LibsqlDialect } from 'kysely-libsql'
 import type { DB } from './types'
 
@@ -17,13 +17,8 @@ if (isTurso && !process.env.DATABASE_AUTH_TOKEN) {
   throw new Error('DATABASE_AUTH_TOKEN is required for Turso connection')
 }
 
+// DB カラムは camelCase なので CamelCasePlugin は不要
 export const db = new Kysely<DB>({
-  dialect: new LibsqlDialect(libsqlConfig),
-  plugins: [new CamelCasePlugin()],
-})
-
-// better-auth expects raw column names; avoid CamelCasePlugin for auth queries.
-export const authDb = new Kysely<DB>({
   dialect: new LibsqlDialect(libsqlConfig),
 })
 

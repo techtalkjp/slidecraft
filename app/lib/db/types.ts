@@ -22,7 +22,7 @@ export interface Account {
   refreshToken: string | null
   refreshTokenExpiresAt: string | null
   scope: string | null
-  updatedAt: string
+  updatedAt: Generated<string>
   userId: string
 }
 
@@ -46,7 +46,7 @@ export interface Session {
   id: string
   ipAddress: string | null
   token: string
-  updatedAt: string
+  updatedAt: Generated<string>
   userAgent: string | null
   userId: string
 }
@@ -59,7 +59,7 @@ export interface User {
   image: string | null
   isAnonymous: Generated<number>
   name: string
-  updatedAt: string
+  updatedAt: Generated<string>
 }
 
 export interface Verification {
@@ -67,7 +67,7 @@ export interface Verification {
   expiresAt: string
   id: string
   identifier: string
-  updatedAt: string
+  updatedAt: Generated<string>
   value: string
 }
 
